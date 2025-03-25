@@ -2,6 +2,7 @@ from flask import Flask
 from flask import url_for
 from flask import render_template
 from flask import request
+from flask import jsonify
 from livereload import Server
 
 
@@ -10,8 +11,21 @@ app.debug = True
 
 @app.route('/', methods=['GET'])
 def index():
- ##Código Python##
- return render_template('index.html')
+    return render_template('index.html')
+
+
+@app.route('/update', methods=['POST'])
+def update():
+    try:
+        data = request.get_json()
+        
+        print("Received data:", data)
+
+        return jsonify(data), 200
+
+    except Exception as e:
+        return jsonify({"error": "Invalid JSON or bad request", "message": str(e)}), 400
+
 
 server = Server(app.wsgi_app)
 server.watch("templates/*.*") # or what-have-you
