@@ -32,11 +32,7 @@ def update():
         led11brightness = data.get('led11', 0)
         led13status = data.get('led13', 0)
         
-        print(led09brightness, led10brightness, led11brightness, led13status)
-
-        ser.write("hello".encode("utf-8"))
-
-        print('hello')
+        ser.write("hello\n".encode("utf-8"))
 
         return '', 204
 

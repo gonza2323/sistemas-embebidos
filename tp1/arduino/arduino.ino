@@ -1,13 +1,17 @@
-int trig=5;
-int echo=4;
+bool ledStatus = false;
+
 void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
-  Serial.begin(9600);
+    pinMode(13, OUTPUT);
+    digitalWrite(13, LOW);
+    
+    Serial.begin(9600);
 }
 
 void loop() {
-  digitalWrite(LED_BUILTIN, HIGH);  // turn the LED on (HIGH is the voltage level)
-  delay(200);                      // wait for a second
-  digitalWrite(LED_BUILTIN, LOW);   // turn the LED off by making the voltage LOW
-  delay(200);                      // wait for a second
+    if (Serial.available() > 0) {
+        String message = Serial.readStringUntil('\n');
+        ledStatus = !ledStatus;
+        digitalWrite(13, ledStatus);
+    }
+    delay(250);
 }
