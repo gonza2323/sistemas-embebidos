@@ -10,9 +10,10 @@
 
 - Arduino IDE o cualquier otro editor de Arduino
 
-- Arduino CLI
+- Arduino CLI y config de la placa
     ```bash
     curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=~/.local/bin sh
+    arduino-cli core install arduino:avr
     ```
 
 - Python venv
