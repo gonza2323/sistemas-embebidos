@@ -16,9 +16,8 @@
     ```
 
 - Python venv
-    ```bash
-    sudo apt install python3.10-venv
-    ```
+
+    Revisar si está instalado con `python3 -m venv`. Si no, instalarlo con pip o apt.
 
 
 ## Cómo usar el entorno de desarrollo
@@ -29,23 +28,20 @@ Clonar el repositorio.
 clone git@github.com:gonza2323/sistemas-embebidos
 ```
 
-Ir al directorio del repositorio y activar el entorno virtual de Python (debería aparecer ):
+Ir al directorio del repositorio, crear un entorno virtual y activarlo.
 
 ```bash
 cd sistemas-embebidos
+python3 -m venv .venv
 source .venv/bin/activate
 ```
+
+Si funcionó, ahora debería aparecer `(.venv)` en el prompt.
 
 Dentro del entorno, instalar los requerimientos:
 
 ```bash
 pip install -r requirements.txt
-```
-
-Para salir de un entorno virtual, hay que usar:
-
-```bash
-deactivate
 ```
 
 ### Usar el simulador
@@ -56,13 +52,13 @@ El simulador no arranca si no está compilado el programa de Arduino. Para ello,
 ./compile.sh
 ```
 
-Para que funcione, el programa del Arduino (.ino) debe estar en esa misma carpeta. El programa compilado debería aparecer en el directorio `build`.
+Para que funcione, el programa del Arduino (arduino.ino) debe estar en esa misma carpeta. El programa compilado debería aparecer en el directorio `build`.
 
 Si hay problemas de permisos, ejecutar `chmod +x compile.sh`.
 
-Ahora si podemos arrancar el simulador en VSCode apretando `F1` o `Shift`+`Ctrl`+`P` y buscando la opción Wokwi: Start Simulator.
+Ahora sí podemos arrancar el simulador en VSCode apretando `F1` o `Shift`+`Ctrl`+`P` y buscando la opción Wokwi: Start Simulator.
 
-La simulación debe estar visible para que no se detenga, conviene colocarla como una nueva pestaña a un costado en el VSCode.
+**La simulación debe estar visible para que no se detenga, conviene colocarla como una nueva pestaña a un costado en el VSCode.**
 
 
 ### Arrancar el servidor web
@@ -75,7 +71,7 @@ Ir a la carpeta `website` de algún trabajo práctico y ejecutar (con el entorno
 flask --app main.py run
 ```
 
-Si queremos que la página se auto refresque cuando hagamos cambios en el código, usamos:
+O, si queremos que la página se auto refresque cuando hagamos cambios en el código, usamos:
 ```bash
 python3 main.py
 ```
