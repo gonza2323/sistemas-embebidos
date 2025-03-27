@@ -10,10 +10,11 @@ async function sendUpdate(event) {
     const formData = new FormData(document.querySelector('form'));
 
     try {
+        const json = JSON.stringify(Object.fromEntries(formData.entries()));
         const response = await fetch('update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(Object.fromEntries(formData.entries()))
+            body: json
         });
 
         if (!response.ok)

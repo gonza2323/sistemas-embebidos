@@ -17,6 +17,11 @@ ser = serial.serial_for_url(
 )
 
 
+def brightness2Byte(brightness):
+    value = int(float(brightness) / 100 * 255)
+    return max(0, min(value, 255))
+
+
 @app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
@@ -27,12 +32,22 @@ def update():
     try:
         data = request.get_json()
 
-        led09brightness = data.get('led09', 0)
-        led10brightness = data.get('led10', 0)
-        led11brightness = data.get('led11', 0)
-        led13status = data.get('led13', 0)
+        print(data)
+
+        led09brightness = brightness2Byte(data.get('led09', 0))
+        led10brightness = brightness2Byte(data.get('led10', 0))
+        led11brightness = brightness2Byte(data.get('led11', 0))
+        led13status = 1 if data.get('led13', '') == 'on' else 0
+
+        serialData = bytes([
+            led09brightness,
+            led10brightness,
+            led11brightness,
+            led13status,
+            ord('\n')
+        ])
         
-        ser.write("hello\n".encode("utf-8"))
+        ser.write(serialData)
 
         return '', 204
 
