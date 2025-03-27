@@ -77,7 +77,7 @@ O, si queremos que la página se auto refresque cuando hagamos cambios en el có
 python3 main.py
 ```
 
-Se puede acceder a la página en <localhost:5000>
+Se puede acceder a la página en [localhost:5000](localhost:5000).
 
 ## Prueba
 
