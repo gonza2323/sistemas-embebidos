@@ -77,6 +77,8 @@ O, si queremos que la página se auto refresque cuando hagamos cambios en el có
 python3 main.py
 ```
 
+Se puede acceder a la página en <localhost:5000>
+
 ## Prueba
 
 En la página web para el TP1, apretar el checkbox del LED 13 debería cambiar el estado del LED 13 en la simulación.
