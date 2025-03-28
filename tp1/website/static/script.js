@@ -9,7 +9,7 @@ const illuminationIndicator = document.querySelector('#illumination');
 
 socket.on("illumination_update", (data) => {
     const illumination = data.illumination;
-    illuminationIndicator.textContent = illumination;
+    illuminationIndicator.textContent = illumination + ' lx';
 });
 
 async function sendUpdate(event) {
@@ -34,19 +34,6 @@ async function sendUpdate(event) {
     } catch (error) {
         console.error('There was an error:', error);
     }
-}
-
-function updateUI(data) {
-    const led09range = document.querySelector('#led09');
-    const led10range = document.querySelector('#led10');
-    const led11range = document.querySelector('#led11');
-    const led13checkbox = document.querySelector('#led13');
-
-    led09range.value = data['led09'];
-    led10range.value = data['led10'];
-    led11range.value = data['led11'];
-    led13checkbox.checked = data['led13'];
-    illuminationIndicator.textContent = data['illumination'];
 }
 
 window.onload = function () {

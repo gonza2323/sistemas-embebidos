@@ -1,9 +1,4 @@
 
-byte led09brightness = 0;
-byte led10brightness = 0;
-byte led11brightness = 0;
-boolean led13status = false;
-
 void setup() {
     pinMode(9, OUTPUT);
     pinMode(10, OUTPUT);
@@ -16,29 +11,25 @@ void setup() {
 
 void loop() {
     if (Serial.available() >= 4) {
-        updateStatus();
+        updateLEDs();
     }
-    sendIlluminationUpdate();
+    sendCurrentIllumination();
     delay(250);
 }
 
 void updateLEDs() {
+    byte led09brightness = Serial.read();
+    byte led10brightness = Serial.read();
+    byte led11brightness = Serial.read();
+    byte led13status = Serial.read();
+
     analogWrite(9, led09brightness);
     analogWrite(10, led10brightness);
     analogWrite(11, led11brightness);
     digitalWrite(13, led13status);
 }
 
-void updateStatus() {
-    led09brightness = Serial.read();
-    led10brightness = Serial.read();
-    led11brightness = Serial.read();
-    led13status = Serial.read();
-
-    updateLEDs();
-}
-
-void sendIlluminationUpdate() {
+void sendCurrentIllumination() {
     int analogValue = analogRead(A3);
     int illumination = calculateIllumination(analogValue);
 

@@ -8,10 +8,10 @@ import serial
 import sys
 
 # valores iniciales
-LED09_BRIGHTNESS = 255
-LED10_BRIGHTNESS = 64
-LED11_BRIGHTNESS = 16
-LED13_STATUS = True
+led09brightness = 255
+led10brightness = 64
+led11brightness = 16
+led13status = True
 
 
 app = Flask(__name__)
@@ -48,7 +48,7 @@ def convertNumStr2Byte(brightness):
     return max(0, min(int(brightness), 255))
 
 
-def updateArduino(led09brightness, led10brightness, led11brightness, led13status):
+def updateArduino():
     data = bytes([
         led09brightness,
         led10brightness,
@@ -63,17 +63,13 @@ def update():
     try:
         data = request.get_json()
 
+        global led09brightness, led10brightness, led11brightness, led13status
         led09brightness = convertNumStr2Byte(data.get('led09', 0))
         led10brightness = convertNumStr2Byte(data.get('led10', 0))
         led11brightness = convertNumStr2Byte(data.get('led11', 0))
         led13status = data.get('led13', '') == 'on'
 
-        updateArduino(
-            led09brightness,
-            led10brightness,
-            led11brightness,
-            led13status
-        )
+        updateArduino()
 
         return '', 204
 
@@ -83,14 +79,14 @@ def update():
 
 @app.route('/', methods=['GET'])
 def index():
-    return render_template('index.html')
+    return render_template(
+        'index.html',
+        led09brightness = led09brightness,
+        led10brightness = led10brightness,
+        led11brightness = led11brightness,
+        led13status = led13status
+    )
 
 
 socketio.start_background_task(serial_read)
-
-updateArduino(
-    LED09_BRIGHTNESS,
-    LED10_BRIGHTNESS,
-    LED11_BRIGHTNESS,
-    LED13_STATUS,
-)
+updateArduino();

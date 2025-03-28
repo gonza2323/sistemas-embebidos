@@ -6,9 +6,7 @@
 
 - Extensión Wokwi Simulator para VSCode [Link](https://marketplace.visualstudio.com/items?itemName=wokwi.wokwi-vscode)
     
-    Después de instalarla, hay que apretar `F1` en VSCode y buscar la opción "Wokwi: Request New License". Se abrirá un navegador y hacemos click en "Get Your License". Tal vez haya que iniciar sesión.
-
-- Arduino IDE o cualquier otro editor de Arduino
+    Después de instalarla, hay que apretar `F1` en VSCode y buscar la opción "Wokwi: Request New License". Se abrirá un navegador y hacemos click en "Get Your License". Pide iniciar sesión.
 
 - Arduino CLI y config de la placa
     ```bash
@@ -47,15 +45,15 @@ pip install -r requirements.txt
 
 ### Usar el simulador
 
-El simulador no arranca si no está compilado el programa de Arduino. Para ello, vamos al directorio de un trabajo práctico, luego a la carpeta `arduino`, y ejecutamos el script `compile.sh` para compilar:
+El simulador no arranca si no está compilado el programa de Arduino. Para ello, vamos al directorio de un trabajo práctico, luego al directorio `arduino`, y ejecutamos el script `compile.sh` para compilar:
 
 ```bash
 ./compile.sh
 ```
 
-Para que funcione, el programa del Arduino (arduino.ino) debe estar en esa misma carpeta. El programa compilado debería aparecer en el directorio `build`.
+Para que funcione, el programa del Arduino (arduino.ino) debe estar en ese mismo directorio. Los binarios compilados deberían aparecer en el directorio `build`.
 
-Si hay problemas de permisos, ejecutar `chmod +x compile.sh`.
+Si hay problemas de permisos, ejecutar `chmod u+x compile.sh`.
 
 Ahora sí podemos arrancar el simulador en VSCode apretando `F1` o `Shift`+`Ctrl`+`P` y buscando la opción Wokwi: Start Simulator.
 
@@ -64,18 +62,22 @@ Ahora sí podemos arrancar el simulador en VSCode apretando `F1` o `Shift`+`Ctrl
 
 ### Arrancar el servidor web
 
-El servidor tal vez crashea si no está andando el simulador al mismo tiempo. Ya lo voy a arreglar para que no pase.
+Ir al directorio `website` de algún trabajo práctico.
 
-Ir a la carpeta `website` de algún trabajo práctico y ejecutar (con el entorno virtual de Python activado):
+Si queremos probarlo con el simulador, ejecutamos:
 
 ```bash
-flask --app main.py run
+flask --app main.py run --debug
 ```
 
-Se puede acceder a la página en http://localhost:5000
+Puede que primero tengamos que tener el simulador andando para que funcione.
+
+Si queremos utilizar el Arduino real (debe estar conectado por USB), quitamos el flag `--debug`. En este caso, no es necesario que esté andando el simulador.
+
+Una vez andando el servidor, se puede acceder a la página en http://localhost:5000
 
 ## Prueba
 
-En la página web para el TP1, apretar el checkbox del LED 13 debería cambiar el estado del LED 13 en la simulación.
+En la página web para el TP1, deberían funcionar los controles de los LEDs tanto en el simulador como en la placa Arduino. Lo mismo para la lectura de la simulación.
 
 ![screenshot del entorno](./img/screenshot.png)
