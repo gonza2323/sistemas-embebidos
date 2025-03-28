@@ -3,12 +3,12 @@ from flask import url_for
 from flask import render_template
 from flask import request
 from flask import jsonify
-from livereload import Server
+from flask_socketio import SocketIO, emit
 import serial
 
 
 app = Flask(__name__)
-app.debug = True
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 ser = serial.serial_for_url(
     'rfc2217://localhost:4000', baudrate=9600, bytesize=serial.EIGHTBITS,
@@ -17,13 +17,24 @@ ser = serial.serial_for_url(
 )
 
 
+def serial_read():
+    while True:
+        try:
+            if ser.in_waiting > 0:
+                msgType = ser.read(1);
+                illumination = int.from_bytes(ser.read(2), byteorder='big')
+                
+                socketio.emit('illumination_update', {'illumination': illumination})
+            
+            socketio.sleep(0.250)
+        
+        except Exception as e:
+            print(f"Error reading serial port: {e}")
+            socketio.sleep(1)
+
+
 def convertNumStr2Byte(brightness):
     return max(0, min(int(brightness), 255))
-
-
-@app.route('/', methods=['GET'])
-def index():
-    return render_template('index.html')
 
 
 @app.route('/update', methods=['POST'])
@@ -52,7 +63,9 @@ def update():
         return jsonify({"error": "Invalid JSON or bad request", "message": str(e)}), 400
 
 
-server = Server(app.wsgi_app)
-server.watch("templates/*.*")
-server.watch("static/*.*")
-server.serve(port=5000)
+@app.route('/', methods=['GET'])
+def index():
+    return render_template('index.html')
+
+
+socketio.start_background_task(serial_read)

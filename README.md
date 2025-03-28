@@ -72,11 +72,6 @@ Ir a la carpeta `website` de algún trabajo práctico y ejecutar (con el entorno
 flask --app main.py run
 ```
 
-O, si queremos que la página se auto refresque cuando hagamos cambios en el código, usamos:
-```bash
-python3 main.py
-```
-
 Se puede acceder a la página en http://localhost:5000
 
 ## Prueba

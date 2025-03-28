@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='reset.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
 </head>
 <body>
     <h1>Sistemas Embebidos</h1>
@@ -33,8 +34,8 @@
             <input type="checkbox" name="led13" id="led13">
         </label>
         <div>
-            Luminosidad LDR:
-            <span id="luminosity"></span>
+            Iluminación:
+            <span id="illumination"></span>
         </div>
     </form>
 
