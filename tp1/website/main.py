@@ -17,9 +17,8 @@ ser = serial.serial_for_url(
 )
 
 
-def brightnessPercentage2Value(brightness):
-    value = int(float(brightness) / 100 * 255)
-    return max(0, min(value, 255))
+def convertNumStr2Byte(brightness):
+    return max(0, min(int(brightness), 255))
 
 
 @app.route('/', methods=['GET'])
@@ -32,11 +31,9 @@ def update():
     try:
         data = request.get_json()
 
-        print(data)
-
-        led09brightness = brightnessPercentage2Value(data.get('led09', 0))
-        led10brightness = brightnessPercentage2Value(data.get('led10', 0))
-        led11brightness = brightnessPercentage2Value(data.get('led11', 0))
+        led09brightness = convertNumStr2Byte(data.get('led09', 0))
+        led10brightness = convertNumStr2Byte(data.get('led10', 0))
+        led11brightness = convertNumStr2Byte(data.get('led11', 0))
         led13status = 1 if data.get('led13', '') == 'on' else 0
 
         serialData = bytes([
@@ -56,6 +53,6 @@ def update():
 
 
 server = Server(app.wsgi_app)
-server.watch("templates/*.*") # or what-have-you
-server.watch("static/*.*") # or what-have-you
+server.watch("templates/*.*")
+server.watch("static/*.*")
 server.serve(port=5000)
