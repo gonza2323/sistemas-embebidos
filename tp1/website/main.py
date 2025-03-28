@@ -5,25 +5,36 @@ from flask import request
 from flask import jsonify
 from flask_socketio import SocketIO, emit
 import serial
+import sys
+
+# valores iniciales
+LED09_BRIGHTNESS = 255
+LED10_BRIGHTNESS = 64
+LED11_BRIGHTNESS = 16
+LED13_STATUS = True
 
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
+port = '/dev/ttyUSB0' if not app.debug else 'rfc2217://localhost:4000'
 
-ser = serial.serial_for_url(
-    'rfc2217://localhost:4000', baudrate=9600, bytesize=serial.EIGHTBITS,
-    parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
-    xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None
-)
+try:
+    ser = serial.serial_for_url(
+        port, baudrate=9600, bytesize=serial.EIGHTBITS,
+        parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
+        xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None
+    )
+except Exception as e:
+    print(f"Error connecting to serial port '{port}'.")
+    print("If --debug flag is set, make sure the simulator is running, otherwise, an Arduino board should be connected")
+    sys.exit(1);
 
 
 def serial_read():
     while True:
         try:
             if ser.in_waiting > 0:
-                msgType = ser.read(1);
                 illumination = int.from_bytes(ser.read(2), byteorder='big')
-                
                 socketio.emit('illumination_update', {'illumination': illumination})
             
             socketio.sleep(0.250)
@@ -37,6 +48,16 @@ def convertNumStr2Byte(brightness):
     return max(0, min(int(brightness), 255))
 
 
+def updateArduino(led09brightness, led10brightness, led11brightness, led13status):
+    data = bytes([
+        led09brightness,
+        led10brightness,
+        led11brightness,
+        int(led13status)
+    ])
+    ser.write(data)
+
+
 @app.route('/update', methods=['POST'])
 def update():
     try:
@@ -45,17 +66,14 @@ def update():
         led09brightness = convertNumStr2Byte(data.get('led09', 0))
         led10brightness = convertNumStr2Byte(data.get('led10', 0))
         led11brightness = convertNumStr2Byte(data.get('led11', 0))
-        led13status = 1 if data.get('led13', '') == 'on' else 0
+        led13status = data.get('led13', '') == 'on'
 
-        serialData = bytes([
+        updateArduino(
             led09brightness,
             led10brightness,
             led11brightness,
-            led13status,
-            ord('\n')
-        ])
-        
-        ser.write(serialData)
+            led13status
+        )
 
         return '', 204
 
@@ -69,3 +87,10 @@ def index():
 
 
 socketio.start_background_task(serial_read)
+
+updateArduino(
+    LED09_BRIGHTNESS,
+    LED10_BRIGHTNESS,
+    LED11_BRIGHTNESS,
+    LED13_STATUS,
+)

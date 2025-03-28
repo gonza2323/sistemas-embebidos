@@ -1,63 +1,50 @@
 
-int led09brightness = 0;
-int led10brightness = 0;
-int led11brightness = 0;
-bool led13Status = false;
+byte led09brightness = 0;
+byte led10brightness = 0;
+byte led11brightness = 0;
+boolean led13status = false;
 
 void setup() {
     pinMode(9, OUTPUT);
     pinMode(10, OUTPUT);
     pinMode(11, OUTPUT);
     pinMode(13, OUTPUT);
-    
-    digitalWrite(9, led09brightness);
-    digitalWrite(10, led10brightness);
-    digitalWrite(11, led11brightness);
-    digitalWrite(13, LOW);
+    pinMode(A3, INPUT);
     
     Serial.begin(9600);
 }
 
 void loop() {
-    if (Serial.available() > 0) {
-        handleMessage();
+    if (Serial.available() >= 4) {
+        updateStatus();
     }
     sendIlluminationUpdate();
-    
     delay(250);
 }
 
-void handleMessage() {
-    char msgType = Serial.read();
-    
-    if (msgType == 'r')
-        sendStatusUpdate();
-    else if (msgType == 'u')
-        processStatusUpdate();
+void updateLEDs() {
+    analogWrite(9, led09brightness);
+    analogWrite(10, led10brightness);
+    analogWrite(11, led11brightness);
+    digitalWrite(13, led13status);
 }
 
-void sendStatusUpdate() {
-    char msgType = 'u';
-    Serial.write(msgType);    
-    Serial.write(led09brightness);    
-    Serial.write(led10brightness);    
-    Serial.write(led11brightness);    
-    Serial.write(led13Status);
-}
+void updateStatus() {
+    led09brightness = Serial.read();
+    led10brightness = Serial.read();
+    led11brightness = Serial.read();
+    led13status = Serial.read();
 
-void processStatusUpdate() {
-    return;
+    updateLEDs();
 }
 
 void sendIlluminationUpdate() {
-    char msgType = 'l';
     int analogValue = analogRead(A3);
     int illumination = calculateIllumination(analogValue);
 
     byte highByte = illumination >> 8;
     byte lowByte = illumination & 0xFF;
     
-    Serial.write(msgType);
     Serial.write(highByte);
     Serial.write(lowByte);
 }
