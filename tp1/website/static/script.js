@@ -1,6 +1,9 @@
 "use strict";
 
 
+const MIN_UPDATE_INTERVAL = 350;
+let rangeUpdateInterval;
+
 const socket = io("http://localhost:5000");
 
 const form = document.querySelector('form');
@@ -36,6 +39,15 @@ async function sendUpdate(event) {
     }
 }
 
-window.onload = function () {
-    form.addEventListener('input', sendUpdate);
-};
+document.querySelectorAll("input[type='range']")
+    .forEach(range => {
+        range.addEventListener("mousedown", event => {
+            rangeUpdateInterval = setInterval(sendUpdate, MIN_UPDATE_INTERVAL, event);
+        })
+        range.addEventListener("mouseup", event => {
+            clearInterval(rangeUpdateInterval);
+            setTimeout(() => sendUpdate(event), MIN_UPDATE_INTERVAL);
+        })
+    });
+
+document.querySelector("#led13").addEventListener("input", sendUpdate);
