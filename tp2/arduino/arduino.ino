@@ -15,6 +15,7 @@ SemaphoreHandle_t readIlluminationSemaphore;
 SemaphoreHandle_t alarmSemaphore;
 
 int illumination = NULL;
+bool alarmFiring = false;
 
 // estructura para pasar argumentos a la tarea BlinkLED
 typedef struct {
@@ -74,8 +75,15 @@ void TaskReadIllumination(void *pvParameters) {
             int analogValue = analogRead(A3);
             illumination = calculateIllumination(analogValue);
 
-            if (illumination > ALARM_THRESHOLD) {
+            if (illumination > ALARM_THRESHOLD && !alarmFiring) {
+                alarmFiring = true;
                 xSemaphoreGive(alarmSemaphore);
+
+                if (xSemaphoreTake(serialPortMutex, portMAX_DELAY) == pdTRUE) {
+                    Serial.write('A');
+                    Serial.write(0);
+                    xSemaphoreGive(serialPortMutex);
+                }
             }
             
             vTaskDelay(pdMS_TO_TICKS(ILM_READ_INTERVAL));
@@ -93,8 +101,8 @@ void TaskSendIllumination(void *pvParameters) {
             byte lowByte = illumination & 0xFF;
             
             if (xSemaphoreTake(serialPortMutex, portMAX_DELAY) == pdTRUE) {
-                // Serial.write(highByte);
-                // Serial.write(lowByte);
+                Serial.write(highByte);
+                Serial.write(lowByte);
                 xSemaphoreGive(serialPortMutex);
             }
 
@@ -109,15 +117,35 @@ void TaskHandleButtonPress(void *pvParameters) {
         if (xSemaphoreTake(interruptSemaphore, portMAX_DELAY) == pdPASS) {
             int isReadingIllumination = uxSemaphoreGetCount(readIlluminationSemaphore);
             if (isReadingIllumination) {
-                xSemaphoreTake(readIlluminationSemaphore, 5);
-                xSemaphoreTake(alarmSemaphore, 5);
-                digitalWrite(11, LOW);
-                digitalWrite(12, LOW);
+                turnOff();
             } else {
-                xSemaphoreGive(readIlluminationSemaphore);
+                turnOn();
             }
         }
         vTaskDelay(pdMS_TO_TICKS(INTERRUPT_INTERVAL));
+    }
+}
+
+void turnOn() {
+    xSemaphoreGive(readIlluminationSemaphore);
+    if (xSemaphoreTake(serialPortMutex, portMAX_DELAY) == pdTRUE) {
+        Serial.write('Y');
+        Serial.write(0);
+        xSemaphoreGive(serialPortMutex);
+    }
+}
+
+void turnOff() {
+    xSemaphoreTake(readIlluminationSemaphore, 5);
+    xSemaphoreTake(alarmSemaphore, 5);
+    digitalWrite(11, LOW);
+    digitalWrite(12, LOW);
+    alarmFiring = false;
+
+    if (xSemaphoreTake(serialPortMutex, portMAX_DELAY) == pdTRUE) {
+        Serial.write('N');
+        Serial.write(0);
+        xSemaphoreGive(serialPortMutex);
     }
 }
 
