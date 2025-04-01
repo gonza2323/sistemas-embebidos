@@ -1,44 +1,51 @@
 #include <Arduino_FreeRTOS.h>
 
+
+int illumination = NULL;
+
 void setup() {
-    pinMode(9, OUTPUT);
-    pinMode(10, OUTPUT);
-    pinMode(11, OUTPUT);
-    pinMode(13, OUTPUT);
-    pinMode(A3, INPUT);
-    
     Serial.begin(9600);
-}
-
-void loop() {
-    if (Serial.available() >= 4) {
-        updateLEDs();
-    }
-    sendCurrentIllumination();
-    delay(250);
-}
-
-void updateLEDs() {
-    byte led09brightness = Serial.read();
-    byte led10brightness = Serial.read();
-    byte led11brightness = Serial.read();
-    byte led13status = Serial.read();
-
-    analogWrite(9, led09brightness);
-    analogWrite(10, led10brightness);
-    analogWrite(11, led11brightness);
-    digitalWrite(13, led13status);
-}
-
-void sendCurrentIllumination() {
-    int analogValue = analogRead(A3);
-    int illumination = calculateIllumination(analogValue);
-
-    byte highByte = illumination >> 8;
-    byte lowByte = illumination & 0xFF;
     
-    Serial.write(highByte);
-    Serial.write(lowByte);
+    pinMode(12, OUTPUT);
+    pinMode(A3, INPUT);
+
+    xTaskCreate(
+    TaskReadIllumination
+    ,  "ReadIllumination"
+    ,  128  // Stack size
+    ,  NULL
+    ,  2  // Priority
+    ,  NULL );
+
+    xTaskCreate(
+    TaskSendIllumination
+    ,  "ReadIllumination"
+    ,  128  // Stack size
+    ,  NULL
+    ,  2  // Priority
+    ,  NULL );
+}
+
+void loop() { }
+
+void TaskReadIllumination(void *pvParameters) {
+    for(;;) {
+        int analogValue = analogRead(A3);
+        illumination = calculateIllumination(analogValue);
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+
+void TaskSendIllumination(void *pvParameters) {
+    for(;;) {
+        byte highByte = illumination >> 8;
+        byte lowByte = illumination & 0xFF;
+    
+        // TODO: Should lock serial port
+        Serial.write(highByte);
+        Serial.write(lowByte);
+        vTaskDelay(pdMS_TO_TICKS(3000));
+    }
 }
 
 int calculateIllumination(int analogValue) {
