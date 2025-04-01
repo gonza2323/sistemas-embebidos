@@ -1,13 +1,18 @@
 #include <Arduino_FreeRTOS.h>
+#include <semphr.h>
 
 
 int illumination = NULL;
+SemaphoreHandle_t serialPortMutex;
+
 
 void setup() {
     Serial.begin(9600);
     
     pinMode(12, OUTPUT);
     pinMode(A3, INPUT);
+
+    serialPortMutex = xSemaphoreCreateMutex();
 
     xTaskCreate(
     TaskReadIllumination
@@ -40,10 +45,13 @@ void TaskSendIllumination(void *pvParameters) {
     for(;;) {
         byte highByte = illumination >> 8;
         byte lowByte = illumination & 0xFF;
-    
-        // TODO: Should lock serial port
-        Serial.write(highByte);
-        Serial.write(lowByte);
+        
+        if (xSemaphoreTake(serialPortMutex, portMAX_DELAY) == pdTRUE) {
+            Serial.write(highByte);
+            Serial.write(lowByte);
+            xSemaphoreGive(serialPortMutex);
+        }
+
         vTaskDelay(pdMS_TO_TICKS(3000));
     }
 }
