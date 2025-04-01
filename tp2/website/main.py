@@ -14,6 +14,13 @@ led11brightness = 16
 led13status = True
 
 
+# tipos de mensajes
+READ_ON = ord('Y');
+READ_OFF = ord('N');
+ALARM_TRIGGERED = ord('A');
+
+
+# inicialización
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 port = '/dev/ttyUSB0' if not app.debug else 'rfc2217://localhost:4000'
@@ -30,12 +37,24 @@ except Exception as e:
     sys.exit(1);
 
 
+# lectura del puerto serial
 def serial_read():
     while True:
         try:
             if ser.in_waiting > 0:
-                illumination = int.from_bytes(ser.read(2), byteorder='big')
-                socketio.emit('illumination_update', {'illumination': illumination})
+                data = ser.read(2)
+                first_byte = data[0]
+                second_byte = data[1]
+
+                if (first_byte == READ_ON):
+                    socketio.emit('read_on', 0)
+                elif (first_byte == READ_OFF):
+                    socketio.emit('read_off', 0)
+                elif (first_byte == ALARM_TRIGGERED):
+                    socketio.emit('alarm', 0)
+                else:
+                    illumination = int.from_bytes(data, byteorder='big')
+                    socketio.emit('illumination_update', {'illumination': illumination})
             
             socketio.sleep(0.250)
         
