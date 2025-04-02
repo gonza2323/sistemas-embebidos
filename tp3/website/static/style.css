@@ -37,3 +37,8 @@ th, td{
     padding: 8px;
     text-align: left;
 }
+
+/* Tabla vacía */
+table:not(:has(tbody tr)) {
+    display: none;
+}
