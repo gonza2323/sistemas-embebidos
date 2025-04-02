@@ -1,34 +1,41 @@
 "use strict";
 
 
-const MIN_UPDATE_INTERVAL = 350;
-let rangeUpdateInterval;
-
 const socket = io("http://localhost:5000");
+const illuminationField = document.querySelector('#illumination-field');
+const illuminationIndicator = document.querySelector('#illumination-value');
+const readLuminosityCheckbox = document.querySelector("#read-luminosity");
+const alarmIndicator = document.querySelector("#alarm");
 
-const form = document.querySelector('form');
-const illuminationIndicator = document.querySelector('#illumination');
 
+socket.on("read_on", () => {
+    readLuminosityCheckbox.checked = true;
+    illuminationField.classList.remove("disabled");
+});
+
+socket.on("read_off", () => {
+    readLuminosityCheckbox.checked = false;
+    illuminationField.classList.add("disabled");
+    alarmIndicator.classList.add("hidden");
+});
+
+socket.on("alarm", (data) => {
+    alarmIndicator.classList.remove("hidden");
+});
 
 socket.on("illumination_update", (data) => {
     const illumination = data.illumination;
     illuminationIndicator.textContent = illumination + ' lx';
 });
 
-async function sendUpdate(event) {
-    event.preventDefault();
-
-    if (event.target.tagName.toLowerCase() !== 'input')
-        return;
-
-    const formData = new FormData(form);
-
+async function update(event) {
     try {
-        const json = JSON.stringify(Object.fromEntries(formData.entries()));
         const response = await fetch('update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: json
+            body: JSON.stringify({
+                readIllumination: readLuminosityCheckbox.checked
+            })
         });
 
         if (!response.ok)
@@ -37,17 +44,14 @@ async function sendUpdate(event) {
     } catch (error) {
         console.error('There was an error:', error);
     }
+
+    if (readLuminosityCheckbox.checked) {
+        illuminationField.classList.remove('disabled');
+        illuminationIndicator.textContent = "Cargando..."
+    } else {
+        illuminationField.classList.add('disabled');
+        alarmIndicator.classList.add("hidden");
+    }
 }
 
-document.querySelectorAll("input[type='range']")
-    .forEach(range => {
-        range.addEventListener("mousedown", event => {
-            rangeUpdateInterval = setInterval(sendUpdate, MIN_UPDATE_INTERVAL, event);
-        })
-        range.addEventListener("mouseup", event => {
-            clearInterval(rangeUpdateInterval);
-            setTimeout(() => sendUpdate(event), MIN_UPDATE_INTERVAL);
-        })
-    });
-
-document.querySelector("#led13").addEventListener("input", sendUpdate);
+readLuminosityCheckbox.addEventListener("change", update);

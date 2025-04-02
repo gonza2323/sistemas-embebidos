@@ -23,6 +23,7 @@ h1, h2 {
 }
 
 form {
+    width: 230px;
     margin-top: 32px;
     background-color: rgb(164, 217, 248);
     padding: 24px;
@@ -43,4 +44,13 @@ label {
 
 label:has(input[type="checkbox"]) {
     justify-content: flex-start;
+}
+
+.disabled {
+    color: gray;
+    text-decoration: line-through;
+}
+
+.hidden {
+    opacity: 0;
 }

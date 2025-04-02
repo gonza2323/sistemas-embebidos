@@ -8,10 +8,8 @@ import serial
 import sys
 
 # valores iniciales
-led09brightness = 255
-led10brightness = 64
-led11brightness = 16
-led13status = True
+readingLuminosity = True
+alarmTriggered = False
 
 
 # tipos de mensajes
@@ -46,11 +44,17 @@ def serial_read():
                 first_byte = data[0]
                 second_byte = data[1]
 
+                global readingLuminosity, alarmTriggered
+
                 if (first_byte == READ_ON):
+                    readingLuminosity = True
                     socketio.emit('read_on', 0)
                 elif (first_byte == READ_OFF):
+                    readingLuminosity = False
+                    alarmTriggered = False
                     socketio.emit('read_off', 0)
                 elif (first_byte == ALARM_TRIGGERED):
+                    alarmTriggered = True
                     socketio.emit('alarm', 0)
                 else:
                     illumination = int.from_bytes(data, byteorder='big')
@@ -67,28 +71,15 @@ def convertNumStr2Byte(brightness):
     return max(0, min(int(brightness), 255))
 
 
-def updateArduino():
-    data = bytes([
-        led09brightness,
-        led10brightness,
-        led11brightness,
-        int(led13status)
-    ])
-    ser.write(data)
-
-
 @app.route('/update', methods=['POST'])
 def update():
     try:
         data = request.get_json()
+        readIllumination = data.get('readIllumination', None)
 
-        global led09brightness, led10brightness, led11brightness, led13status
-        led09brightness = convertNumStr2Byte(data.get('led09', 0))
-        led10brightness = convertNumStr2Byte(data.get('led10', 0))
-        led11brightness = convertNumStr2Byte(data.get('led11', 0))
-        led13status = data.get('led13', '') == 'on'
-
-        updateArduino()
+        if readIllumination is not None:
+            char = READ_ON if readIllumination else READ_OFF
+            ser.write(bytes([char]))
 
         return '', 204
 
@@ -100,12 +91,9 @@ def update():
 def index():
     return render_template(
         'index.html',
-        led09brightness = led09brightness,
-        led10brightness = led10brightness,
-        led11brightness = led11brightness,
-        led13status = led13status
+        readingLuminosity = readingLuminosity,
+        alarmTriggered = alarmTriggered
     )
 
 
 socketio.start_background_task(serial_read)
-updateArduino();
