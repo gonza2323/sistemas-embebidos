@@ -1,70 +1,70 @@
 #include <Arduino_FreeRTOS.h>
 #include <semphr.h>
-
+#include <queue.h>
+#include <EEPROM.h>
 
 // config
-int ALARM_THRESHOLD = 800;
-int READ_INTERVAL = 200;
-int SEND_INTERVAL = 3000;
-int RECEIVE_MSG_INTERVAL = 200;
-int INTERRUPT_INTERVAL = 100;
+#define DEBOUNCE_DELAY 30
+#define RECEIVE_MSG_INTERVAL 100
 
 // tipos de mensajes
-char READ_ON = 'Y';
-char READ_OFF = 'N';
-char ALARM_TRIGGERED = 'A';
-char FILL = 'X';
+#define ERASE_MEMORY_MSG 'M'
+#define REQUEST_EVENTS_MSG 'R'
+#define SYNC_MSG 'S'
 
-// semáforos
-SemaphoreHandle_t serialPortMutex;
-SemaphoreHandle_t interruptSemaphore;
-SemaphoreHandle_t readIlluminationSemaphore;
-SemaphoreHandle_t alarmSemaphore;
+// variables
+uint32_t unixTimeSecondsAtSync = 0;
+uint16_t unixTimeMilisAtSync = 0;
+TickType_t tickCountAtSync = 0;
+uint8_t eventAmount = 0;
 
-int illumination = NULL;
-bool alarmFiring = false;
-
-// estructura para pasar argumentos a la tarea BlinkLED
+// estructura Button
 typedef struct {
-    int LED;
-    int period;
+    uint8_t pin;
     SemaphoreHandle_t semaphore;
-} BlinkLEDTaskParams;
+    TaskHandle_t task;
+} Button;
+
+// botones
+Button button2 = {2, NULL, NULL};
+Button button3 = {3, NULL, NULL};
+
+// estructura evento
+typedef struct {
+    uint8_t pin;
+    uint32_t tickCount;
+} Event;
+
+// control
+QueueHandle_t eventSaveQueue;
+
+// handles de tareas
+TaskHandle_t blinkLedTaskHandle;
 
 
 // inicialización
 void setup() {
     // puerto serial y pines
     Serial.begin(9600);
-    
-    pinMode(3, INPUT);
-    pinMode(A3, INPUT);
+    pinMode(6, OUTPUT);
+    pinMode(7, OUTPUT);
     pinMode(11, OUTPUT);
-    pinMode(12, OUTPUT);
 
-    attachInterrupt(digitalPinToInterrupt(3), buttonHandler, RISING);
+    eventSaveQueue = xQueueCreate(4, sizeof(Event));
 
-    // inicializar semáforos
-    serialPortMutex = xSemaphoreCreateMutex();
-    interruptSemaphore = xSemaphoreCreateBinary();
-    readIlluminationSemaphore = xSemaphoreCreateBinary();
-    alarmSemaphore = xSemaphoreCreateBinary();
+    button2.semaphore = xSemaphoreCreateBinary();
+    button3.semaphore = xSemaphoreCreateBinary();
+    xSemaphoreGive(button2.semaphore);
+    xSemaphoreGive(button3.semaphore);
 
-    xSemaphoreGive(readIlluminationSemaphore);
+    xTaskCreate(TaskProcessEvent, "ProcessEvents", 128, NULL, 1, NULL);
+    xTaskCreate(TaskDebounceButton, "DebounceButton2", 96, &button2, 1, &button2.task);
+    xTaskCreate(TaskDebounceButton, "DebounceButton3", 96, &button3, 1, &button3.task);
+    xTaskCreate(TaskBlinkOnceLED, "BlinkLEDOnce", 96, NULL, 1, &blinkLedTaskHandle);
+    xTaskCreate(TaskReadMessages, "ReadMsgs", 96, NULL, 1, NULL);
 
-    // tareas para lectura y envío de luminosidad, y manejo del botón
-    xTaskCreate(TaskReadIllumination, "ReadIllumination", 96, NULL, 1, NULL);
-    xTaskCreate(TaskSendIllumination, "SendIllumination", 96, NULL, 1, NULL);
-    xTaskCreate(TaskHandleButtonPress, "HandleButton", 96, NULL, 2, NULL);
-
-    // tareas para parpadeo de LEDs de lectura y alarma
-    static BlinkLEDTaskParams readLED = {11, 1000, readIlluminationSemaphore};
-    static BlinkLEDTaskParams alarmLED = {12, 100, alarmSemaphore};
-    xTaskCreate(TaskBlinkLED, "BlinkReadLED", 72, &readLED, 1, NULL);
-    xTaskCreate(TaskBlinkLED, "BlinkAlarmLED", 72, &alarmLED, 1, NULL);
-
-    // tarea para leer el puerto serial
-    xTaskCreate(TaskReadMessages, "ReadMessages", 96, NULL, 1, NULL);
+    attachInterrupt(digitalPinToInterrupt(2), button2ISR, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(3), button3ISR, CHANGE);
 }
 
 void loop() { }
@@ -74,34 +74,51 @@ void loop() { }
 // ------------------- TAREAS ------------------- //
 // ---------------------------------------------- //
 
-
-// lectura del sensor de iluminación
-void TaskReadIllumination(void *pvParameters) {
+// parpadear LED una vez
+void TaskBlinkOnceLED(void *pvParameters) {
     for(;;) {
-        if (xSemaphoreTake(readIlluminationSemaphore, portMAX_DELAY) == pdTRUE) {
-            xSemaphoreGive(readIlluminationSemaphore);
-            
-            int analogValue = analogRead(A3);
-            illumination = calculateIllumination(analogValue);
-
-            if (illumination > ALARM_THRESHOLD && !alarmFiring) {
-                alarmFiring = true;
-                xSemaphoreGive(alarmSemaphore);
-                sendMessage(ALARM_TRIGGERED);
-            }
-            
-            vTaskDelay(pdMS_TO_TICKS(READ_INTERVAL));
+        uint32_t ledPin;
+        if (xTaskNotifyWait(0, 0, &ledPin, portMAX_DELAY) == pdTRUE) {
+            digitalWrite(ledPin, HIGH);
+            vTaskDelay(pdMS_TO_TICKS(100));
+            digitalWrite(ledPin, LOW);
         }
     }
 }
 
-// enviar dato de iluminación por puerto serial
-void TaskSendIllumination(void *pvParameters) {
+void TaskDebounceButton(void *pvParameters) {
+    Button* button = pvParameters;
+    TickType_t tickCountAtEvent;
+    
     for(;;) {
-        if (xSemaphoreTake(readIlluminationSemaphore, portMAX_DELAY) == pdTRUE) {
-            xSemaphoreGive(readIlluminationSemaphore);
-            sendInt(illumination);
-            vTaskDelay(pdMS_TO_TICKS(SEND_INTERVAL));
+        if (xTaskNotifyWait(0, 0, (uint32_t*)&tickCountAtEvent, pdMS_TO_TICKS(20 * 1000)) == pdTRUE) {
+            if (digitalRead(button->pin)) {
+                Event event = {button->pin, tickCountAtEvent};
+                xQueueSend(eventSaveQueue, &event, portMAX_DELAY);
+            }
+            vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_DELAY));
+            xSemaphoreGive(button->semaphore);
+        }
+    }
+}
+
+void TaskProcessEvent(void *pvParameters) {
+    Event event;
+
+    while (1) {
+        if (xQueueReceive(eventSaveQueue, &event, portMAX_DELAY) == pdTRUE) {
+            uint32_t millisAtEvent = (event.tickCount - tickCountAtSync) * 1000UL / configTICK_RATE_HZ + unixTimeMilisAtSync;
+            uint32_t unixTimestampSeconds = unixTimeSecondsAtSync + millisAtEvent / 1000;
+            uint16_t unixTimestampMilis = millisAtEvent % 1000;
+            
+            struct {
+                uint8_t pin;    
+                uint32_t unixTimeSeconds;  
+                uint16_t unixTimeMilis;
+            } eventData = {event.pin, unixTimestampSeconds, unixTimestampMilis};
+
+            if ((eventAmount + 1) * sizeof(eventData) < EEPROM.length())
+                EEPROM.put(eventAmount++ * sizeof(eventData), eventData);
         }
     }
 }
@@ -110,93 +127,33 @@ void TaskReadMessages(void *pvParameters) {
     for(;;) {
         if (Serial.available()) {
             byte msg;
-            if (xSemaphoreTake(serialPortMutex, portMAX_DELAY) == pdTRUE) {
-                msg = Serial.read();
-                xSemaphoreGive(serialPortMutex);
+            msg = Serial.read();
+            switch (msg) {
+                case SYNC_MSG:
+                    break;
+                case REQUEST_EVENTS_MSG:
+                    break;
+                case ERASE_MEMORY_MSG:
+                    break;
             }
-            if (msg == READ_ON)
-                turnOn();
-            else if (msg == READ_OFF)
-                turnOff();
         }
         vTaskDelay(pdMS_TO_TICKS(RECEIVE_MSG_INTERVAL));
     }
 }
 
-// control del botón: activa y desactiva lectura
-void TaskHandleButtonPress(void *pvParameters) {
-    for(;;) {
-        if (xSemaphoreTake(interruptSemaphore, portMAX_DELAY) == pdPASS) {
-            int isReadingIllumination = uxSemaphoreGetCount(readIlluminationSemaphore);
-            if (isReadingIllumination) {
-                turnOff();
-                sendMessage(READ_OFF);
-            } else {
-                turnOn();
-                sendMessage(READ_ON);
-            }
-        }
-        vTaskDelay(pdMS_TO_TICKS(INTERRUPT_INTERVAL));
-    }
-}
+// manejo de botones
 
-void turnOn() {
-    xSemaphoreGive(readIlluminationSemaphore);
-}
-
-void turnOff() {
-    xSemaphoreTake(readIlluminationSemaphore, 5);
-    xSemaphoreTake(alarmSemaphore, 5);
-    digitalWrite(11, LOW);
-    digitalWrite(12, LOW);
-    alarmFiring = false;
-}
-
-// control del parpadeo de un LED
-void TaskBlinkLED(void *pvParameters) {
-    BlinkLEDTaskParams *params = (BlinkLEDTaskParams*) pvParameters;
+void buttonISR(Button* button) {
+    TickType_t currentTicks = xTaskGetTickCountFromISR();
     
-    for(;;) {
-        if (xSemaphoreTake(params->semaphore, portMAX_DELAY) == pdTRUE) {
-            xSemaphoreGive(params->semaphore);
-            digitalWrite(params->LED, HIGH);
-            vTaskDelay(pdMS_TO_TICKS(params->period/2));
-            digitalWrite(params->LED, LOW);
-            vTaskDelay(pdMS_TO_TICKS(params->period/2));
+    if (xSemaphoreTakeFromISR(button->semaphore, 0) == pdTRUE) {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xTaskNotifyFromISR(button->task, currentTicks, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
+        if (xHigherPriorityTaskWoken == pdTRUE) {
+            taskYIELD();
         }
     }
 }
 
-
-// ------------------- AUX -------------------- //
-
-void sendInt(int value) {
-    byte highByte = value >> 8;
-    byte lowByte = value & 0xFF;
-
-    if (xSemaphoreTake(serialPortMutex, portMAX_DELAY) == pdTRUE) {
-        Serial.write(highByte);
-        Serial.write(lowByte);
-        xSemaphoreGive(serialPortMutex);
-    }
-}
-
-void sendMessage(char message) {
-    sendInt(256 * message + FILL);
-}
-
-int calculateIllumination(int analogValue) {
-    // These constants should match the photoresistor's attributes
-    const float GAMMA = 0.7;
-    const float RL10 = 50;
-
-    float voltage = analogValue / 1024. * 5;
-    float resistance = 2000 * voltage / (1 - voltage / 5);
-    float illumination = pow(RL10 * 1e3 * pow(10, GAMMA) / resistance, (1 / GAMMA));
-
-    return illumination;
-}
-
-void buttonHandler() {
-    xSemaphoreGiveFromISR(interruptSemaphore, NULL);
-}
+void button2ISR() { buttonISR(&button2); }
+void button3ISR() { buttonISR(&button3); }
