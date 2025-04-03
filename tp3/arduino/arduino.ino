@@ -40,6 +40,7 @@ QueueHandle_t eventSaveQueue;
 
 // handles de tareas
 TaskHandle_t blinkLedTaskHandle;
+TaskHandle_t sendEventsTaskHandle;
 
 
 // inicialización
@@ -62,6 +63,7 @@ void setup() {
     xTaskCreate(TaskDebounceButton, "DebounceButton3", 96, &button3, 1, &button3.task);
     xTaskCreate(TaskBlinkOnceLED, "BlinkLEDOnce", 96, NULL, 1, &blinkLedTaskHandle);
     xTaskCreate(TaskReadMessages, "ReadMsgs", 96, NULL, 1, NULL);
+    xTaskCreate(TaskSendEvents, "SendEvents", 96, NULL, 1, &sendEventsTaskHandle);
 
     attachInterrupt(digitalPinToInterrupt(2), button2ISR, CHANGE);
     attachInterrupt(digitalPinToInterrupt(3), button3ISR, CHANGE);
@@ -132,12 +134,20 @@ void TaskReadMessages(void *pvParameters) {
                 case SYNC_MSG:
                     break;
                 case REQUEST_EVENTS_MSG:
-                    break;
+                    xTaskNotifyGive(sendEventsTaskHandle);
                 case ERASE_MEMORY_MSG:
                     break;
             }
         }
         vTaskDelay(pdMS_TO_TICKS(RECEIVE_MSG_INTERVAL));
+    }
+}
+
+void TaskSendEvents(void *pvParameters) {
+    for(;;) {
+        if (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) == pdTRUE) {
+            vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_DELAY));
+        }
     }
 }
 
