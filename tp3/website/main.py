@@ -4,18 +4,17 @@ from flask import render_template
 from flask import request
 from flask import jsonify
 from flask_socketio import SocketIO, emit
+from datetime import datetime
 import serial
+import struct
+import time
 import sys
 
-# valores iniciales
-readingLuminosity = True
-alarmTriggered = False
-
-
 # tipos de mensajes
-READ_ON = ord('Y');
-READ_OFF = ord('N');
-ALARM_TRIGGERED = ord('A');
+ERASE_MEMORY_MSG = b'M'
+REQUEST_EVENTS_MSG = b'R'
+SYNC_MSG = b'S'
+SINGLE_EVENT_MSG = 255
 
 
 # inicialización
@@ -40,47 +39,73 @@ def serial_read():
     while True:
         try:
             if ser.in_waiting > 0:
-                data = ser.read(2)
+                data = ser.read(1)
                 first_byte = data[0]
-                second_byte = data[1]
 
-                global readingLuminosity, alarmTriggered
-
-                if (first_byte == READ_ON):
-                    readingLuminosity = True
-                    socketio.emit('read_on', 0)
-                elif (first_byte == READ_OFF):
-                    readingLuminosity = False
-                    alarmTriggered = False
-                    socketio.emit('read_off', 0)
-                elif (first_byte == ALARM_TRIGGERED):
-                    alarmTriggered = True
-                    socketio.emit('alarm', 0)
+                if (first_byte == SINGLE_EVENT_MSG):
+                    socketio.emit('single_event', readEvent())
                 else:
-                    illumination = int.from_bytes(data, byteorder='big')
-                    socketio.emit('illumination_update', {'illumination': illumination})
+                    eventAmount = first_byte
+                    events = []
+                    for i in range(eventAmount):
+                        events.append(readEvent())
+                    socketio.emit('all_events', events)
             
-            socketio.sleep(0.250)
+            socketio.sleep(0.100)
         
         except Exception as e:
             print(f"Error reading serial port: {e}")
             socketio.sleep(1)
 
 
-def convertNumStr2Byte(brightness):
-    return max(0, min(int(brightness), 255))
+def readEvent():
+    button = int.from_bytes(ser.read())
+    unixTimestampSeconds = int.from_bytes(ser.read(4), byteorder='little')
+    unixTimestampMillis = int.from_bytes(ser.read(2), byteorder='little')
+    unixTimestamp = unixTimestampSeconds + unixTimestampMillis / 1000.0
+        
+    event = {}
+    event["event"] = "Botón " + str(button)
+    event["timestamp"] = unixTimestamp
+    event["time"] = timestamp_to_local_datetime(unixTimestamp)
+    return event
 
 
-@app.route('/update', methods=['POST'])
-def update():
+def timestamp_to_local_datetime(timestamp):
+    dt = datetime.fromtimestamp(timestamp)
+    milliseconds = int((timestamp % 1) * 1000)
+    return dt.strftime(f'%Y-%m-%d %H:%M:%S.{milliseconds:03d} %Z')
+
+
+@app.route('/sync-time', methods=['POST'])
+def sync_time():
     try:
-        data = request.get_json()
-        readIllumination = data.get('readIllumination', None)
+        timeMs = time.time_ns() // 1_000_000
+        data = struct.pack('<IH', timeMs // 1000, timeMs % 1000);
 
-        if readIllumination is not None:
-            char = READ_ON if readIllumination else READ_OFF
-            ser.write(bytes([char]))
+        ser.write(SYNC_MSG)
+        ser.write(data)
+        
+        return '', 204
 
+    except Exception as e:
+        return jsonify({"error": "Invalid JSON or bad request", "message": str(e)}), 400
+
+
+@app.route('/request-events', methods=['GET'])
+def request_events():
+    try:
+        ser.write(REQUEST_EVENTS_MSG)
+        return '', 204
+
+    except Exception as e:
+        return jsonify({"error": "Invalid JSON or bad request", "message": str(e)}), 400
+
+
+@app.route('/erase-memory', methods=['POST'])
+def erase_memory():
+    try:
+        ser.write(ERASE_MEMORY_MSG)
         return '', 204
 
     except Exception as e:
@@ -89,11 +114,7 @@ def update():
 
 @app.route('/', methods=['GET'])
 def index():
-    return render_template(
-        'index.html',
-        readingLuminosity = readingLuminosity,
-        alarmTriggered = alarmTriggered
-    )
+    return render_template('index.html')
 
 
 socketio.start_background_task(serial_read)

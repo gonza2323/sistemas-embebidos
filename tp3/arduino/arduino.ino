@@ -5,12 +5,13 @@
 
 // config
 #define DEBOUNCE_DELAY 30
-#define RECEIVE_MSG_INTERVAL 100
+#define RECEIVE_MSG_INTERVAL 20
 
 // tipos de mensajes
 #define ERASE_MEMORY_MSG 'M'
 #define REQUEST_EVENTS_MSG 'R'
 #define SYNC_MSG 'S'
+#define SINGLE_EVENT_MSG 255
 
 // variables
 uint32_t unixTimeSecondsAtSync = 0;
@@ -35,12 +36,17 @@ typedef struct {
     uint32_t tickCount;
 } Event;
 
+typedef struct {
+    uint8_t pin;    
+    uint32_t unixTimeSeconds;  
+    uint16_t unixTimeMilis;
+} EventData;
+
 // control
 QueueHandle_t eventSaveQueue;
 
 // handles de tareas
 TaskHandle_t blinkLedTaskHandle;
-TaskHandle_t sendEventsTaskHandle;
 
 
 // inicialización
@@ -62,8 +68,7 @@ void setup() {
     xTaskCreate(TaskDebounceButton, "DebounceButton2", 96, &button2, 1, &button2.task);
     xTaskCreate(TaskDebounceButton, "DebounceButton3", 96, &button3, 1, &button3.task);
     xTaskCreate(TaskBlinkOnceLED, "BlinkLEDOnce", 96, NULL, 1, &blinkLedTaskHandle);
-    xTaskCreate(TaskReadMessages, "ReadMsgs", 96, NULL, 1, NULL);
-    xTaskCreate(TaskSendEvents, "SendEvents", 96, NULL, 1, &sendEventsTaskHandle);
+    xTaskCreate(TaskReadMessages, "ReadMsgs", 96, NULL, 2, NULL);
 
     attachInterrupt(digitalPinToInterrupt(2), button2ISR, CHANGE);
     attachInterrupt(digitalPinToInterrupt(3), button3ISR, CHANGE);
@@ -113,14 +118,13 @@ void TaskProcessEvent(void *pvParameters) {
             uint32_t unixTimestampSeconds = unixTimeSecondsAtSync + millisAtEvent / 1000;
             uint16_t unixTimestampMilis = millisAtEvent % 1000;
             
-            struct {
-                uint8_t pin;    
-                uint32_t unixTimeSeconds;  
-                uint16_t unixTimeMilis;
-            } eventData = {event.pin, unixTimestampSeconds, unixTimestampMilis};
+            EventData eventData = {event.pin, unixTimestampSeconds, unixTimestampMilis};
 
-            if ((eventAmount + 1) * sizeof(eventData) < EEPROM.length())
-                EEPROM.put(eventAmount++ * sizeof(eventData), eventData);
+            if ((eventAmount + 1) * sizeof(EventData) < EEPROM.length() - 1) {
+                EEPROM.put(eventAmount++ * sizeof(EventData), eventData);
+                Serial.write(SINGLE_EVENT_MSG);
+                Serial.write((uint8_t*)&eventData, sizeof(EventData));
+            }
         }
     }
 }
@@ -132,10 +136,13 @@ void TaskReadMessages(void *pvParameters) {
             msg = Serial.read();
             switch (msg) {
                 case SYNC_MSG:
+                    syncTime();
                     break;
                 case REQUEST_EVENTS_MSG:
-                    xTaskNotifyGive(sendEventsTaskHandle);
+                    sendEvents();
+                    break;
                 case ERASE_MEMORY_MSG:
+                    eraseMemory();
                     break;
             }
         }
@@ -143,12 +150,33 @@ void TaskReadMessages(void *pvParameters) {
     }
 }
 
-void TaskSendEvents(void *pvParameters) {
-    for(;;) {
-        if (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) == pdTRUE) {
-            vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_DELAY));
-        }
+void syncTime() {
+    tickCountAtSync = xTaskGetTickCount();
+    
+    while (Serial.available() < 6) { }
+
+    unixTimeSecondsAtSync = 0;
+    unixTimeSecondsAtSync |= (uint32_t)Serial.read();
+    unixTimeSecondsAtSync |= (uint32_t)Serial.read() << 8;
+    unixTimeSecondsAtSync |= (uint32_t)Serial.read() << 16;
+    unixTimeSecondsAtSync |= (uint32_t)Serial.read() << 24;
+
+    unixTimeMilisAtSync = 0;
+    unixTimeMilisAtSync |= (uint16_t)Serial.read();
+    unixTimeMilisAtSync |= (uint16_t)Serial.read() << 8;
+}
+
+void sendEvents() {
+    Serial.write(eventAmount);
+    for (int i = 0; i < eventAmount; i++) {
+        EventData eventData;
+        eventData = EEPROM.get(i * sizeof(EventData), eventData);
+        Serial.write((uint8_t*)&eventData, sizeof(EventData));
     }
+}
+
+void eraseMemory() {
+    eventAmount = 0;
 }
 
 // manejo de botones
