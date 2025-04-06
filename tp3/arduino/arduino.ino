@@ -6,6 +6,7 @@
 // config
 #define DEBOUNCE_DELAY 30
 #define RECEIVE_MSG_INTERVAL 20
+#define MAX_EVENT_AMOUNT 147
 
 // tipos de mensajes
 #define ERASE_MEMORY_MSG 'M'
@@ -18,6 +19,7 @@ uint32_t unixTimeSecondsAtSync = 0;
 uint16_t unixTimeMilisAtSync = 0;
 TickType_t tickCountAtSync = 0;
 uint8_t eventAmount = 0;
+uint8_t checksum = 0;
 
 // estructura Button
 typedef struct {
@@ -53,12 +55,18 @@ TaskHandle_t blinkLedTaskHandle;
 void setup() {
     // puerto serial y pines
     Serial.begin(9600);
+    pinMode(2, INPUT);
+    pinMode(3, INPUT);
     pinMode(6, OUTPUT);
     pinMode(7, OUTPUT);
     pinMode(11, OUTPUT);
 
-    eventSaveQueue = xQueueCreate(4, sizeof(Event));
+    if (checkEepromHasValidState()) {
+        eventAmount = EEPROM.read(EEPROM.length() - 1);
+        checksum = EEPROM.read(EEPROM.length() - 2);
+    }
 
+    eventSaveQueue = xQueueCreate(4, sizeof(Event));
     button2.semaphore = xSemaphoreCreateBinary();
     button3.semaphore = xSemaphoreCreateBinary();
     xSemaphoreGive(button2.semaphore);
@@ -120,8 +128,11 @@ void TaskProcessEvent(void *pvParameters) {
             
             EventData eventData = {event.pin, unixTimestampSeconds, unixTimestampMilis};
 
-            if ((eventAmount + 1) * sizeof(EventData) < EEPROM.length() - 1) {
+            if ((eventAmount + 1) * sizeof(EventData) < EEPROM.length() - 2) {
                 EEPROM.put(eventAmount++ * sizeof(EventData), eventData);
+                
+                incrementChecksum(&eventData);
+                saveState();
                 Serial.write(SINGLE_EVENT_MSG);
                 Serial.write((uint8_t*)&eventData, sizeof(EventData));
             }
@@ -177,6 +188,37 @@ void sendEvents() {
 
 void eraseMemory() {
     eventAmount = 0;
+    checksum = 0;
+    saveState();
+}
+
+bool checkEepromHasValidState() {
+    return false;
+    uint8_t storedEventAmount = EEPROM.read(EEPROM.length() - 1);
+    uint8_t storedChecksum = EEPROM.read(EEPROM.length() - 2);
+
+    if (storedEventAmount > MAX_EVENT_AMOUNT)
+        return false;
+    
+    uint8_t checksum = storedEventAmount;
+
+    for (int i = 0; i < storedEventAmount * sizeof(EventData); i++)
+        checksum += EEPROM.read(i);
+    
+    return checksum == storedChecksum;
+}
+
+void incrementChecksum(EventData* eventData) {
+    uint8_t sum = 0;
+    const uint8_t *p = (const uint8_t*)eventData;
+    for (uint8_t i = 0; i < sizeof(EventData); i++)
+        sum += p[i];
+    checksum += sum + 1;
+}
+
+void saveState() {
+    EEPROM.update(EEPROM.length() - 1, eventAmount);
+    EEPROM.update(EEPROM.length() - 2, checksum);
 }
 
 // manejo de botones
