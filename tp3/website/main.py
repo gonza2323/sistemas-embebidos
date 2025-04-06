@@ -77,15 +77,18 @@ def timestamp_to_local_datetime(timestamp):
     return dt.strftime(f'%Y-%m-%d %H:%M:%S.{milliseconds:03d} %Z')
 
 
-@app.route('/sync-time', methods=['POST'])
 def sync_time():
-    try:
-        timeMs = time.time_ns() // 1_000_000
-        data = struct.pack('<IH', timeMs // 1000, timeMs % 1000);
+    timeMs = time.time_ns() // 1_000_000
+    data = struct.pack('<IH', timeMs // 1000, timeMs % 1000);
 
-        ser.write(SYNC_MSG)
-        ser.write(data)
-        
+    ser.write(SYNC_MSG)
+    ser.write(data)
+
+
+@app.route('/sync-time', methods=['POST'])
+def sync_time_route():
+    try:
+        sync_time()
         return '', 204
 
     except Exception as e:
@@ -93,7 +96,7 @@ def sync_time():
 
 
 @app.route('/request-events', methods=['GET'])
-def request_events():
+def request_events_route():
     try:
         ser.write(REQUEST_EVENTS_MSG)
         return '', 204
@@ -103,7 +106,7 @@ def request_events():
 
 
 @app.route('/erase-memory', methods=['POST'])
-def erase_memory():
+def erase_memory_route():
     try:
         ser.write(ERASE_MEMORY_MSG)
         return '', 204
@@ -118,3 +121,4 @@ def index():
 
 
 socketio.start_background_task(serial_read)
+sync_time()

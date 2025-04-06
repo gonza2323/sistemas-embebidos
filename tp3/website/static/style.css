@@ -38,6 +38,11 @@ th, td{
     text-align: left;
 }
 
+#no-events-placeholder {
+    grid-column: 1 / span 3;
+    text-align: center;
+}
+
 /* Tabla vacía */
 table:not(:has(tbody tr)) {
     display: none;

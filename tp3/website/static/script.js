@@ -62,8 +62,14 @@ async function eraseMemory(event) {
 }
 
 function renderTable() {
+    const noEventsPlaceholder = document.querySelector('#no-events-placeholder');
     const tbody = document.querySelector('tbody');
     tbody.innerHTML = '';
+
+    if (events.length === 0) {
+        noEventsPlaceholder.hidden = false;
+        return;
+    }
 
     const fragment = document.createDocumentFragment();
     
@@ -81,6 +87,7 @@ function renderTable() {
         fragment.prepend(row);
     });
 
+    noEventsPlaceholder.hidden = true;
     tbody.appendChild(fragment);
 }
 
