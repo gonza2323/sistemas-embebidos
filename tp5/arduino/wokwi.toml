@@ -1,0 +1,5 @@
+[wokwi]
+version=1
+firmware='build/arduino.ino.hex'
+elf='build/arduino.ino.elf'
+rfc2217ServerPort = 4000

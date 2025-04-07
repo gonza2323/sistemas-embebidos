@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistemas Embebidos TP 1</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='reset.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+</head>
+<body>
+    <h1>Sistemas Embebidos</h1>
+    <h2>Trabajo Práctico Nº 3</h2>
+
+    <div class="box">
+        <button id="update-time">Actualizar hora del Arduino</button>
+        <button id="request-events">Mostrar eventos ocurridos</button>
+        <button id="erase-memory">Borrar memoria EEPROM</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>Evento</th>
+                    <th>Unix Timestamp</th>
+                    <th>Hora UTC-03:00</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        <div id="no-events-placeholder">
+            No hay eventos registrados
+        </div>
+    </div>
+</body>
+</html>
