@@ -72,7 +72,10 @@ def receive_data(ser):
 if __name__ == "__main__":
     try:
         # Connect to the serial port
-        ser = serial.serial_for_url(PORT, baudrate=BAUD_RATE, timeout=0.1)
+        ser = serial.Serial(port='/dev/ttyACM0', baudrate=9600, bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
+            xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None,
+            exclusive=None)
         print(f"Connected to {PORT} at {BAUD_RATE} baud")
         
         # Start the receiver thread

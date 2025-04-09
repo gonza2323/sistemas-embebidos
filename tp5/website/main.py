@@ -23,11 +23,18 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 port = '/dev/ttyUSB0' if not app.debug else 'rfc2217://localhost:4000'
 
 try:
-    ser = serial.serial_for_url(
-        port, baudrate=9600, bytesize=serial.EIGHTBITS,
-        parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
-        xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None
-    )
+    if (app.debug):
+        ser = serial.serial_for_url(
+            port, baudrate=9600, bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
+            xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None
+        )
+    else:
+        ser = serial.Serial(
+            port, baudrate=9600, bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
+            xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None,
+            exclusive=None)
 except Exception as e:
     print(f"Error connecting to serial port '{port}'.")
     print("If --debug flag is set, make sure the simulator is running, otherwise, an Arduino board should be connected")

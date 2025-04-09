@@ -64,6 +64,9 @@ void setup() {
     if (checkEepromHasValidState()) {
         eventAmount = EEPROM.read(EEPROM.length() - 1);
         checksum = EEPROM.read(EEPROM.length() - 2);
+    } else {
+        EEPROM.write(EEPROM.length() - 1, 0);
+        EEPROM.write(EEPROM.length() - 2, 0);
     }
 
     eventSaveQueue = xQueueCreate(4, sizeof(Event));
@@ -193,7 +196,6 @@ void eraseMemory() {
 }
 
 bool checkEepromHasValidState() {
-    return false;
     uint8_t storedEventAmount = EEPROM.read(EEPROM.length() - 1);
     uint8_t storedChecksum = EEPROM.read(EEPROM.length() - 2);
 

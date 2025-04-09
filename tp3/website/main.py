@@ -20,14 +20,21 @@ SINGLE_EVENT_MSG = 255
 # inicialización
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
-port = '/dev/ttyUSB0' if not app.debug else 'rfc2217://localhost:4000'
+port = '/dev/ttyACM0' if not app.debug else 'rfc2217://localhost:4000'
 
 try:
-    ser = serial.serial_for_url(
-        port, baudrate=9600, bytesize=serial.EIGHTBITS,
-        parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
-        xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None
-    )
+    if (app.debug):
+        ser = serial.serial_for_url(
+            port, baudrate=9600, bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
+            xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None
+        )
+    else:
+        ser = serial.Serial(
+            port, baudrate=9600, bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
+            xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None,
+            exclusive=None)
 except Exception as e:
     print(f"Error connecting to serial port '{port}'.")
     print("If --debug flag is set, make sure the simulator is running, otherwise, an Arduino board should be connected")
@@ -80,6 +87,7 @@ def timestamp_to_local_datetime(timestamp):
 def sync_time():
     timeMs = time.time_ns() // 1_000_000
     data = struct.pack('<IH', timeMs // 1000, timeMs % 1000);
+    print(timeMs);
 
     ser.write(SYNC_MSG)
     ser.write(data)
@@ -120,5 +128,5 @@ def index():
     return render_template('index.html')
 
 
-socketio.start_background_task(serial_read)
 sync_time()
+socketio.start_background_task(serial_read)
