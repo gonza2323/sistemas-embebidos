@@ -2,17 +2,13 @@
 
 ## Requerimientos
 
-- VSCode
+- Python
 
-- Extensión Wokwi Simulator para VSCode [Link](https://marketplace.visualstudio.com/items?itemName=wokwi.wokwi-vscode)
+- VSCode y Extensión Wokwi Simulator para VSCode [Link](https://marketplace.visualstudio.com/items?itemName=wokwi.wokwi-vscode). Esto es si queremos simular el Arduino y no utilizar la placa real.
     
     Después de instalarla, hay que apretar `F1` en VSCode y buscar la opción "Wokwi: Request New License". Se abrirá un navegador y hacemos click en "Get Your License". Pide iniciar sesión.
 
 - Arduino CLI y config de la placa
-    ```bash
-    curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=~/.local/bin sh
-    ~/.local/bin/arduino-cli core install arduino:avr
-    ```
 
 - Python venv
 
@@ -43,26 +39,31 @@ Dentro del entorno, instalar los requerimientos:
 pip install -r requirements.txt
 ```
 
-### Usar el simulador
-
-El simulador no arranca si no está compilado el programa de Arduino. Para ello, vamos al directorio de un trabajo práctico, luego al directorio `arduino`, y ejecutamos el script `compile.sh` para compilar:
+Ejecutar el script de setup, que instala arduino-cli, la configuración de la placa, y configura los permisos correctamente para que el usuario pueda acceder al puerto serial.
 
 ```bash
-./compile.sh
+./setup.sh
 ```
 
-Para que funcione, el programa del Arduino (arduino.ino) debe estar en ese mismo directorio. Los binarios compilados deberían aparecer en el directorio `build`.
+Una vez instalados los requerimientos, tenemos dos opciones para ejecutar la aplicación. Utilizar el simulador de Arduino, o conectar la placa a la PC.
 
-Si hay problemas de permisos, ejecutar `chmod u+x compile.sh`.
+### A) Usando el simulador de Arduino
 
-Ahora sí podemos arrancar el simulador en VSCode apretando `F1` o `Shift`+`Ctrl`+`P` y buscando la opción Wokwi: Start Simulator.
+El simulador no arranca si no está compilado el programa de Arduino. Para ello, desde el directorio del proyecto, ejecutamos el script `./compile <directorio-tp>` para compilar el programa de Arduino del tp correspondiente. Por ejemplo:
+
+```bash
+./compile.sh tp3
+```
+
+Para que funcione, el programa del Arduino debe estar en `<directorio-tp>/arduino/arduino.ino`.
+
+Ahora sí, podemos arrancar el simulador en VSCode apretando `F1` o `Shift`+`Ctrl`+`P` y buscando la opción "Wokwi: Select Config File", seleccionando la configuración del tp que queramos, y luego buscar y ejecutar la opción "Wokwi: Start Simulator".
 
 **La simulación debe estar visible para que no se detenga, conviene colocarla como una nueva pestaña a un costado en el VSCode.**
 
+### B) Usando la placa Arduino
 
-### Arrancar el servidor web
-
-Ir al directorio `website` de algún trabajo práctico.
+Dentro del directorio del proyecto
 
 Si queremos probarlo con el simulador, ejecutamos:
 
@@ -75,6 +76,12 @@ Puede que primero tengamos que tener el simulador andando para que funcione.
 Si queremos utilizar el Arduino real (debe estar conectado por USB), quitamos el flag `--debug`. En este caso, no es necesario que esté andando el simulador.
 
 Una vez andando el servidor, se puede acceder a la página en http://localhost:5000
+
+## Arrancar el servidor web
+
+El servidor web no arranca si no está ejecutándose el simulador, o est´
+
+Dentro del directorio del proyecto, ejecutamos el script `./start_server.sh <directorio-tp>`. Si estamos utilizando el simulador de Arduino, debemos agregar el flag `--debug`, de lo contrario no arrancará el servidor.
 
 ## Prueba
 

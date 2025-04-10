@@ -13,7 +13,7 @@ USER_HOME=$(eval echo ~$(logname))
 
 echo "Instalando arduino-cli..."
 sudo -u "$CURRENT_USER" mkdir -p $USER_HOME/.local/bin
-sudo -u "$CURRENT_USER" curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh > /dev/null | sudo -u "$CURRENT_USER" BINDIR=$USER_HOME/.local/bin sh > /dev/null
+sudo -u "$CURRENT_USER" curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sudo -u "$CURRENT_USER" BINDIR=$USER_HOME/.local/bin sh > /dev/null
 sudo -u "$CURRENT_USER" $USER_HOME/.local/bin/arduino-cli core install arduino:avr > /dev/null
 
 
