@@ -63,25 +63,17 @@ Ahora sí, podemos arrancar el simulador en VSCode apretando `F1` o `Shift`+`Ctr
 
 ### B) Usando la placa Arduino
 
-Dentro del directorio del proyecto
+Primero debe conectarse la placa por USB. Luego podemos ejecutar el script `./upload.sh <directorio-tp>` para compilar y cargar el programa del tp correspondiente a la placa.
 
-Si queremos probarlo con el simulador, ejecutamos:
-
-```bash
-flask --app main.py run --debug
-```
-
-Puede que primero tengamos que tener el simulador andando para que funcione.
-
-Si queremos utilizar el Arduino real (debe estar conectado por USB), quitamos el flag `--debug`. En este caso, no es necesario que esté andando el simulador.
-
-Una vez andando el servidor, se puede acceder a la página en http://localhost:5000
+Si hay problemas de permisos, es porque no se ejecutó nunca el script de setup `./setup.sh`. Alternativamente, ejecutar `sudo chmod 777 /dev/ttyACM0`
 
 ## Arrancar el servidor web
 
-El servidor web no arranca si no está ejecutándose el simulador, o est´
+El servidor web no arranca si no está ejecutándose el simulador, o alternativamente, se encuentra conectada la placa Arduino.
 
 Dentro del directorio del proyecto, ejecutamos el script `./start_server.sh <directorio-tp>`. Si estamos utilizando el simulador de Arduino, debemos agregar el flag `--debug`, de lo contrario no arrancará el servidor.
+
+Una vez andando el servidor, se puede acceder a la página en http://localhost:5000
 
 ## Prueba
 
