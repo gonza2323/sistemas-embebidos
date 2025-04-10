@@ -20,7 +20,7 @@ SINGLE_EVENT_MSG = 255
 # inicialización
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
-port = '/dev/ttyUSB0' if not app.debug else 'rfc2217://localhost:4000'
+port = '/dev/ttyACM0' if not app.debug else 'rfc2217://localhost:4000'
 
 try:
     if (app.debug):
