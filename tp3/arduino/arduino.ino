@@ -4,7 +4,7 @@
 #include <EEPROM.h>
 
 // config
-#define DEBOUNCE_DELAY 30
+#define DEBOUNCE_DELAY 50
 #define RECEIVE_MSG_INTERVAL 20
 #define MAX_EVENT_AMOUNT 147
 
@@ -110,11 +110,11 @@ void TaskDebounceButton(void *pvParameters) {
     
     for(;;) {
         if (xTaskNotifyWait(0, 0, (uint32_t*)&tickCountAtEvent, pdMS_TO_TICKS(20 * 1000)) == pdTRUE) {
+            vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_DELAY));
             if (digitalRead(button->pin)) {
                 Event event = {button->pin, tickCountAtEvent};
                 xQueueSend(eventSaveQueue, &event, portMAX_DELAY);
             }
-            vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_DELAY));
             xSemaphoreGive(button->semaphore);
         }
     }
