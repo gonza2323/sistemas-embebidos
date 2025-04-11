@@ -51,23 +51,6 @@ def serial_read():
             socketio.sleep(1)
 
 
-
-# def timestamp_to_local_datetime(timestamp):
-#     dt = datetime.fromtimestamp(timestamp)
-#     milliseconds = int((timestamp % 1) * 1000)
-#     return dt.strftime(f'%Y-%m-%d %H:%M:%S.{milliseconds:03d} %Z')
-
-
-# @app.route('/request-events', methods=['GET'])
-# def request_events_route():
-#     try:
-#         ser.write(REQUEST_EVENTS_MSG)
-#         return '', 204
-
-#     except Exception as e:
-#         return jsonify({"error": "Invalid JSON or bad request", "message": str(e)}), 400
-
-
 @app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
