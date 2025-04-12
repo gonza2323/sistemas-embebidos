@@ -1,7 +1,13 @@
 "use strict";
 
 
-const socket = io("http://localhost:5000");
+const socketHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000'
+    : 'https://embebidos.ddns.net';
+
+const socket = io(socketHost);
+
+
 const illuminationField = document.querySelector('#illumination-field');
 const illuminationIndicator = document.querySelector('#illumination-value');
 const readLuminosityCheckbox = document.querySelector("#read-luminosity");
