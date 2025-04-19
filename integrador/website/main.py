@@ -45,9 +45,10 @@ def serial_read():
             socketio.sleep(1)
 
 
-@socketio.on('volume_data')
-def handle_volume_data(volume):
-    data = struct.pack('<f', volume)
+@socketio.on('data')
+def handle_data(data):
+    print(data)
+    data = struct.pack('<f', data)
     ser.write(data)
 
 

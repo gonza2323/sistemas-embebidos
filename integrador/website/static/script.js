@@ -9,7 +9,7 @@ const UPDATE_INTERVAL = 100;
 const SENSITIVITY = 3;
 const LOCAL_VOLUME_CHART_DURATION = 10000;
 
-let lastTimestamp;
+let dataType = "volume";
 
 Chart.register(ChartStreaming);
 const socket = io();
@@ -131,6 +131,63 @@ const localVolume = new Chart(ctx2, {
 });
 
 
+const ctx3 = document.getElementById('local-illumination').getContext('2d');
+const localIllumination = new Chart(ctx3, {
+    type: 'line',
+    data: {
+        datasets: [{
+            label: 'Iluminación',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgb(25, 193, 34)',
+            borderWidth: 2,
+            pointRadius: 2,
+            data: []
+        }]
+    },
+    options: {
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Hora (UTC-3)'
+                },
+                type: 'realtime',
+                realtime: {
+                    duration: LOCAL_VOLUME_CHART_DURATION,
+                    delay: 50,
+                    refresh: 100,
+                    pause: false,
+                    ttl: LOCAL_VOLUME_CHART_DURATION * 1.5
+                },
+                ticks: {
+                    source: 'auto',
+                    autoSkip: true
+                }
+            },
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Iluminación (%)'
+                },
+            }
+        },
+        plugins: {
+            title: {
+                display: true,
+                text: 'Iluminación (local) en función del tiempo'
+            },
+            legend: {
+                display: false
+            }
+        },
+        animation: {
+            duration: 100
+        }
+    }
+});
+
+let lastTimestamp;
 socket.on('new_data_point', function (data) {
     if (lastTimestamp && data.timestamp - lastTimestamp > MAX_INTERRUPTION_DURATION)
         arduinoIllumination.data.datasets[0].data.push({ x: data.timestamp, y: null });
@@ -168,7 +225,8 @@ navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
         const rms = Math.sqrt(sum / input.length);
         const volume = Math.log(1 + rms * 2**SENSITIVITY) / Math.log(1 + 2**SENSITIVITY);
     
-        socket.emit('volume_data', volume);
+        if (dataType === "volume")
+            socket.emit('data', volume);
 
         localVolume.data.datasets[0].data.push({
             x: now,
@@ -178,3 +236,31 @@ navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
         lastEmit = now;
     };
 });
+
+let lightSensor;
+
+try {
+    lightSensor = new AmbientLightSensor();
+    
+    setInterval(() => {
+        const now = Date.now();
+        const lightLevel = lightSensor.illuminance;
+        ilm.textContent = lightLevel;
+
+        if (dataType === "illumination")
+            socket.emit("data", lightLevel);
+        
+        localIllumination.data.datasets[0].data.push({
+            x: now,
+            y: lightLevel
+        });
+    }, 500);
+
+    lightSensor.addEventListener('error', event => {
+        console.error('Sensor error:', event.error.name, event.error.message);
+    });
+
+    lightSensor.start();
+} catch (err) {
+    console.error('Ambient Light Sensor not supported or blocked:', err);
+}
