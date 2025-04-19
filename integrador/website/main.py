@@ -47,7 +47,6 @@ def serial_read():
 
 @socketio.on('data')
 def handle_data(data):
-    print(data)
     data = struct.pack('<f', data)
     ser.write(data)
 

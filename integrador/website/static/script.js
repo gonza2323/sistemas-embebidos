@@ -9,7 +9,7 @@ const UPDATE_INTERVAL = 100;
 const SENSITIVITY = 3;
 const LOCAL_VOLUME_CHART_DURATION = 10000;
 
-let dataType = "volume";
+let dataType = "illumination";
 
 Chart.register(ChartStreaming);
 const socket = io();
@@ -170,6 +170,7 @@ const localIllumination = new Chart(ctx3, {
                     display: true,
                     text: 'Iluminación (%)'
                 },
+                max: 100
             }
         },
         plugins: {
@@ -237,24 +238,21 @@ navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
     };
 });
 
-let lightSensor;
-
 try {
-    lightSensor = new AmbientLightSensor();
-    
+    const lightSensor = new AmbientLightSensor();
     setInterval(() => {
         const now = Date.now();
         const lightLevel = lightSensor.illuminance;
-        ilm.textContent = lightLevel;
+        const lightPercentage = lightLevel / 60000
 
         if (dataType === "illumination")
-            socket.emit("data", lightLevel);
-        
+            socket.emit("data", lightPercentage);
+
         localIllumination.data.datasets[0].data.push({
             x: now,
-            y: lightLevel
+            y: lightPercentage * 100
         });
-    }, 500);
+    }, 100);
 
     lightSensor.addEventListener('error', event => {
         console.error('Sensor error:', event.error.name, event.error.message);
