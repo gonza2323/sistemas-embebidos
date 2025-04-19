@@ -13,21 +13,14 @@ import sys
 # inicialización
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
-port = '/dev/arduino' if not app.debug else 'rfc2217://localhost:4000'
+port = '/dev/arduino'
 
 try:
-    if (app.debug):
-        ser = serial.serial_for_url(
-            port, baudrate=9600, bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
-            xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None
-        )
-    else:
-        ser = serial.Serial(
-            port, baudrate=9600, bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
-            xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None,
-            exclusive=None)
+    ser = serial.Serial(
+        port, baudrate=9600, bytesize=serial.EIGHTBITS,
+        parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
+        xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None,
+        exclusive=None)
 except Exception as e:
     print(f"Error connecting to serial port '{port}'.")
     print("If --debug flag is set, make sure the simulator is running, otherwise, an Arduino board should be connected")
@@ -39,7 +32,7 @@ def serial_read():
     while True:
         try:
             if ser.in_waiting > 0:
-                timestamp = current_time_ms = time.time_ns() // 1_000_000
+                timestamp = time.time_ns() // 1_000_000
                 illumination = int.from_bytes(ser.read(2), byteorder='little')
                 data = {}
                 data["timestamp"] = timestamp
