@@ -9,7 +9,7 @@ const UPDATE_INTERVAL = 100;
 const SENSITIVITY = 3;
 const LOCAL_VOLUME_CHART_DURATION = 10000;
 
-let dataType = "illumination";
+let dataType = "volume";
 
 Chart.register(ChartStreaming);
 const socket = io();
