@@ -1,103 +1,116 @@
 "use strict";
 
 
-const socketHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:5000'
-    : 'https://embebidos.ddns.net';
+// audio
+const UPDATE_INTERVAL = 100;
+const SENSITIVITY = 5;
+// iluminación
+const CHART_DURATION = 60000;
+const MAX_INTERRUPTION_DURATION = 7500;
 
-const socket = io(socketHost);
+let lastTimestamp;
 
-let events = [];
+Chart.register(ChartStreaming);
+const socket = io();
 
 
-socket.on("single_event", (event) => {
-    events.push(event);
-    renderTable();
+navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    const scaleFactor = 2^SENSITIVITY
+    const audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(stream);
+    const processor = audioContext.createScriptProcessor(2048, 1, 1);
+
+    source.connect(processor);
+    processor.connect(audioContext.destination);
+
+    let lastEmit = Date.now();
+
+    processor.onaudioprocess = (e) => {
+        const now = Date.now();
+        if (now - lastEmit < UPDATE_INTERVAL) {
+            return;
+        }
+    
+        const input = e.inputBuffer.getChannelData(0);
+        let sum = 0;
+        for (let i = 0; i < input.length; i++) {
+            sum += input[i] * input[i];
+        }
+        const rms = Math.sqrt(sum / input.length);
+        const volume = Math.log(1 + rms * scaleFactor) / Math.log(1 + scaleFactor);
+    
+        socket.emit('volume_data', volume);
+        console.log(`Sent volume data: ${volume}`);
+        lastEmit = now;
+    };
 });
 
-socket.on("all_events", (receivedEvents) => {
-    events = receivedEvents;
-    renderTable();
-})
 
-async function updateTime(event) {
-    try {
-        const response = await fetch('sync-time', {
-            method: 'POST',
-        });
-
-        if (!response.ok)
-            throw new Error('Network response was not ok ' + response.statusText);
-
-    } catch (error) {
-        console.error('There was an error:', error);
+const ctx = document.getElementById('chart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        datasets: [{
+            label: 'Iluminación',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgb(240, 51, 51)',
+            borderWidth: 2,
+            pointRadius: 2,
+            data: []
+        }]
+    },
+    options: {
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Hora (UTC-3)'
+                },
+                type: 'realtime',
+                realtime: {
+                    duration: CHART_DURATION,
+                    delay: 1000,
+                    pause: false,
+                    ttl: CHART_DURATION * 2
+                },
+                ticks: {
+                    source: 'auto',
+                    autoSkip: true
+                }
+            },
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Iluminación (%)'
+                },
+                max: 100
+            }
+        },
+        plugins: {
+            title: {
+                display: true,
+                text: 'Iluminación en función del tiempo'
+            },
+            legend: {
+                display: false
+            }
+        },
+        animation: {
+            duration: 100
+        }
     }
-}
+});
 
-async function requestEvents(event) {
-    try {
-        const response = await fetch('request-events', {
-            method: 'GET',
-        });
 
-        if (!response.ok)
-            throw new Error('Network response was not ok ' + response.statusText);
-
-    } catch (error) {
-        console.error('There was an error:', error);
-    }
-}
-
-async function eraseMemory(event) {
-    try {
-        const response = await fetch('erase-memory', {
-            method: 'POST',
-        });
-
-        if (!response.ok)
-            throw new Error('Network response was not ok ' + response.statusText);
-
-        events = [];
-        renderTable();
-
-    } catch (error) {
-        console.error('There was an error:', error);
-    }
-}
-
-function renderTable() {
-    const noEventsPlaceholder = document.querySelector('#no-events-placeholder');
-    const tbody = document.querySelector('tbody');
-    tbody.innerHTML = '';
-
-    if (events.length === 0) {
-        noEventsPlaceholder.hidden = false;
-        return;
-    }
-
-    const fragment = document.createDocumentFragment();
+socket.on('new_data_point', function (data) {
+    if (lastTimestamp && data.timestamp - lastTimestamp > MAX_INTERRUPTION_DURATION)
+        chart.data.datasets[0].data.push({ x: data.timestamp, y: null });
     
-    events.forEach(e => {
-        const row = document.createElement('tr');
-        
-        const event = row.insertCell();
-        const tiemstamp = row.insertCell();
-        const time = row.insertCell();
-
-        event.textContent = e.event;
-        tiemstamp.textContent = e.timestamp;
-        time.textContent = e.time;
-
-        fragment.prepend(row);
+    chart.data.datasets[0].data.push({
+        x: data.timestamp,
+        y: data.illumination
     });
 
-    noEventsPlaceholder.hidden = true;
-    tbody.appendChild(fragment);
-}
-
-document.querySelector('#update-time').addEventListener('click', updateTime);
-document.querySelector('#request-events').addEventListener('click', requestEvents);
-document.querySelector('#erase-memory').addEventListener('click', eraseMemory);
-
-requestEvents();
-renderTable();
+    lastTimestamp = data.timestamp;
+});

@@ -38,7 +38,7 @@ def serial_read():
     while True:
         try:
             if ser.in_waiting > 0:
-                timestamp = current_time_ms = time.time_ns() // 1_000_000
+                timestamp = time.time_ns() // 1_000_000
                 illumination = int.from_bytes(ser.read(2), byteorder='little')
                 data = {}
                 data["timestamp"] = timestamp

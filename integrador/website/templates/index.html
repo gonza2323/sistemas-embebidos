@@ -4,36 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistemas Embebidos | TP Integrador</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='reset.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/2.3.1/luxon.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-luxon/1.2.0/chartjs-adapter-luxon.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-streaming/2.0.0/chartjs-plugin-streaming.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+
     <script src="{{ url_for('static', filename='script.js') }}" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
 </head>
 <body>
     <h1>Sistemas Embebidos</h1>
     <h2>Trabajo Práctico Integrador</h2>
-
-    <div class="box">
-        <button id="update-time">Actualizar hora del Arduino</button>
-        <button id="request-events">Mostrar eventos ocurridos</button>
-        <button id="erase-memory">Borrar memoria EEPROM</button>
-        <table>
-            <thead>
-                <tr>
-                    <th>Evento</th>
-                    <th>Unix Timestamp</th>
-                    <th>Hora UTC-03:00</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-        <div id="no-events-placeholder">
-            No hay eventos registrados
-        </div>
-    </div>
+    <canvas id="chart"></canvas>
 </body>
 </html>

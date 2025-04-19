@@ -9,12 +9,7 @@ let lastTimestamp;
 
 
 Chart.register(ChartStreaming);
-
-const socketHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:5000'
-    : 'https://embebidos.ddns.net';
-
-const socket = io(socketHost);
+const socket = io();
 
 
 const ctx = document.getElementById('chart').getContext('2d');
@@ -40,7 +35,6 @@ const chart = new Chart(ctx, {
                 type: 'realtime',
                 realtime: {
                     duration: CHART_DURATION,
-                    refresh: 1000,
                     delay: 1000,
                     pause: false,
                     ttl: CHART_DURATION * 2
@@ -73,6 +67,9 @@ const chart = new Chart(ctx, {
         }
     }
 });
+
+
+
 
 
 socket.on('new_data_point', function (data) {
