@@ -2,7 +2,7 @@
 #define FIRST_LED 6
 #define LAST_LED 13
 
-#define ILLUMINATION_UPDATE_PERIOD 500
+#define UPDATE_PERIOD 500
 
 float volume = 0;
 uint32_t lastSentUpdate;
@@ -14,6 +14,8 @@ union FloatUnion {
 
 void setup() {
     pinMode(A3, INPUT);
+    pinMode(2, OUTPUT);
+    pinMode(3, OUTPUT);
     for (int i = FIRST_LED; i <= LAST_LED; i++)
         pinMode(i, OUTPUT);
     
@@ -30,8 +32,8 @@ void loop() {
     }
 
     uint32_t now = millis();
-    if (now - lastSentUpdate > ILLUMINATION_UPDATE_PERIOD) {
-        sendIllumination();
+    if (now - lastSentUpdate > UPDATE_PERIOD) {
+        sendUpdate();
         lastSentUpdate = now;
     }
     delay(100);
@@ -66,7 +68,11 @@ void updateLEDs() {
         digitalWrite(i, LOW);
 }
 
-void sendIllumination() {
+void sendUpdate() {
     int analogValue = analogRead(A3);
+    bool buttonA = digitalRead(2);
+    bool buttonB = digitalRead(3);
     Serial.write((uint8_t*)&analogValue, sizeof(int));
+    Serial.write(buttonA);
+    Serial.write(buttonB);
 }

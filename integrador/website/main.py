@@ -34,9 +34,13 @@ def serial_read():
             if ser.in_waiting > 0:
                 timestamp = time.time_ns() // 1_000_000
                 illumination = int.from_bytes(ser.read(2), byteorder='little')
+                buttonA = bool.from_bytes(ser.read(1))
+                buttonB = bool.from_bytes(ser.read(1))
                 data = {}
                 data["timestamp"] = timestamp
                 data["illumination"] = illumination / 1024 * 100
+                data["buttonA"] = buttonA
+                data["buttonB"] = buttonB
                 socketio.emit('new_data_point', data)
             socketio.sleep(0.10)
         

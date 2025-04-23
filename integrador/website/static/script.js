@@ -73,8 +73,73 @@ const arduinoIllumination = new Chart(ctx, {
 });
 
 
-const ctx2 = document.getElementById('local-volume').getContext('2d');
-const localVolume = new Chart(ctx2, {
+const ctx2 = document.getElementById('arduino-buttons').getContext('2d');
+const arduinoButtons = new Chart(ctx2, {
+    type: 'line',
+    data: {
+        datasets: [{
+            label: 'botón A',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgb(255, 33, 33)',
+            borderWidth: 2,
+            pointRadius: 2,
+            data: []
+        },{
+            label: 'botón B',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgb(26, 41, 250)',
+            borderWidth: 2,
+            pointRadius: 2,
+            data: []
+        }]
+    },
+    options: {
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Hora (UTC-3)'
+                },
+                type: 'realtime',
+                realtime: {
+                    duration: LOCAL_VOLUME_CHART_DURATION,
+                    delay: 50,
+                    refresh: 100,
+                    pause: false,
+                    ttl: LOCAL_VOLUME_CHART_DURATION * 1.5
+                },
+                ticks: {
+                    source: 'auto',
+                    autoSkip: true
+                }
+            },
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Botones'
+                },
+                max: 1.5
+            }
+        },
+        plugins: {
+            title: {
+                display: true,
+                text: 'Actividad botones'
+            },
+            legend: {
+                display: false
+            }
+        },
+        animation: {
+            duration: 100
+        }
+    }
+});
+
+
+const ctx3 = document.getElementById('local-volume').getContext('2d');
+const localVolume = new Chart(ctx3, {
     type: 'line',
     data: {
         datasets: [{
@@ -131,8 +196,8 @@ const localVolume = new Chart(ctx2, {
 });
 
 
-const ctx3 = document.getElementById('local-illumination').getContext('2d');
-const localIllumination = new Chart(ctx3, {
+const ctx4 = document.getElementById('local-illumination').getContext('2d');
+const localIllumination = new Chart(ctx4, {
     type: 'line',
     data: {
         datasets: [{
@@ -188,14 +253,28 @@ const localIllumination = new Chart(ctx3, {
     }
 });
 
+
 let lastTimestamp;
 socket.on('new_data_point', function (data) {
-    if (lastTimestamp && data.timestamp - lastTimestamp > MAX_INTERRUPTION_DURATION)
+    if (lastTimestamp && data.timestamp - lastTimestamp > MAX_INTERRUPTION_DURATION) {
         arduinoIllumination.data.datasets[0].data.push({ x: data.timestamp, y: null });
+        arduinoButtons.data.datasets[0].data.push({ x: data.timestamp, y: null });
+        arduinoButtons.data.datasets[1].data.push({ x: data.timestamp, y: null });
+    }
     
     arduinoIllumination.data.datasets[0].data.push({
         x: data.timestamp,
         y: data.illumination
+    });
+
+    arduinoButtons.data.datasets[0].data.push({
+        x: data.timestamp,
+        y: data.buttonA
+    });
+
+    arduinoButtons.data.datasets[1].data.push({
+        x: data.timestamp,
+        y: data.buttonB
     });
 
     lastTimestamp = data.timestamp;
@@ -239,6 +318,8 @@ navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
 });
 
 try {
+    const ilm = document.getElementById('ilm');
+    const out = document.getElementById('out');
     const lightSensor = new AmbientLightSensor();
     setInterval(() => {
         const now = Date.now();
@@ -248,6 +329,7 @@ try {
         if (dataType === "illumination")
             socket.emit("data", lightPercentage);
 
+        ilm.textContent = lightPercentage;
         localIllumination.data.datasets[0].data.push({
             x: now,
             y: lightPercentage * 100
@@ -256,9 +338,11 @@ try {
 
     lightSensor.addEventListener('error', event => {
         console.error('Sensor error:', event.error.name, event.error.message);
+        out.textContent = 'Sensor error:' + event.error.name, event.error.message;
     });
 
     lightSensor.start();
 } catch (err) {
     console.error('Ambient Light Sensor not supported or blocked:', err);
+    out.textContent = 'Ambient Light Sensor not supported or blocked:' + err
 }

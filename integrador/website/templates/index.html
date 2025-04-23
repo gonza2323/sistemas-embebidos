@@ -27,16 +27,28 @@
         <fieldset>
             <legend>Qué dato mostrar en el Arduino?</legend>
             <label>
-                <input type="radio" name="choice" value="volume">
+                <input type="radio" name="choice" value="volume" onclick="dataType='volume';">
                 Volumen
             </label><br>
             <label>
-                <input type="radio" name="choice" value="illumination">
+                <input type="radio" name="choice" value="illumination" onclick="dataType='illumination';">
                 Iluminación
+            </label>
+        </fieldset>
+        <fieldset>
+            <legend>Sensibilidad</legend>
+            <label>
+                Volumen
+                <input type="range" name="volume-sensitivity">
+            </label><br>
+            <label>
+                Iluminación
+                <input type="range" name="light-sensitivity" >
             </label>
         </fieldset>
     </form>
     <canvas id="arduino-illumination"></canvas>
+    <canvas id="arduino-buttons"></canvas>
     <canvas id="local-volume"></canvas>
     <canvas id="local-illumination"></canvas>
     <div id="ilm">Iluminación</div>
