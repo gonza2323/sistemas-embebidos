@@ -14,6 +14,14 @@ h1, h2 {
     text-align: center;
 }
 
+h2 {
+    margin-bottom: 12px;
+}
+
+form  {
+    margin-top: 24px;
+}
+
 canvas {
     margin-top: 36px;
     max-width: 800px;

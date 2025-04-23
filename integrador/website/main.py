@@ -9,6 +9,8 @@ import struct
 import time
 import sys
 
+ILLUMINATION_MSG = 'L'
+BUTTON_MSG = 'B'
 
 # inicialización
 app = Flask(__name__)
@@ -33,16 +35,22 @@ def serial_read():
         try:
             if ser.in_waiting > 0:
                 timestamp = time.time_ns() // 1_000_000
-                illumination = int.from_bytes(ser.read(2), byteorder='little')
-                buttonA = bool.from_bytes(ser.read(1))
-                buttonB = bool.from_bytes(ser.read(1))
+                msg_type = ser.read(1).decode()
                 data = {}
                 data["timestamp"] = timestamp
-                data["illumination"] = illumination / 1024 * 100
-                data["buttonA"] = buttonA
-                data["buttonB"] = buttonB
-                socketio.emit('new_data_point', data)
-            socketio.sleep(0.10)
+
+                if msg_type == ILLUMINATION_MSG:
+                    illumination = int.from_bytes(ser.read(2), byteorder='little')
+                    data["illumination"] = illumination / 1024 * 100
+                    socketio.emit('illumination_update', data)
+                elif msg_type == BUTTON_MSG:
+                    button = int.from_bytes(ser.read(1))
+                    state = bool.from_bytes(ser.read(1))
+                    data["button"] = button
+                    data["buttonState"] = state
+                    socketio.emit('buttons_update', data)
+
+            socketio.sleep(0.050)
         
         except Exception as e:
             print(f"Error reading serial port: {e}")

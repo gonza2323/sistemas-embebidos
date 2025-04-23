@@ -78,18 +78,18 @@ const arduinoButtons = new Chart(ctx2, {
     type: 'line',
     data: {
         datasets: [{
-            label: 'botón A',
+            label: 'Botón 2',
             backgroundColor: 'rgba(75, 192, 192, 0.2)',
             borderColor: 'rgb(255, 33, 33)',
             borderWidth: 2,
-            pointRadius: 2,
+            pointRadius: 0,
             data: []
         },{
-            label: 'botón B',
+            label: 'Botón 3',
             backgroundColor: 'rgba(75, 192, 192, 0.2)',
             borderColor: 'rgb(26, 41, 250)',
             borderWidth: 2,
-            pointRadius: 2,
+            pointRadius: 0,
             data: []
         }]
     },
@@ -103,8 +103,8 @@ const arduinoButtons = new Chart(ctx2, {
                 type: 'realtime',
                 realtime: {
                     duration: LOCAL_VOLUME_CHART_DURATION,
-                    delay: 50,
-                    refresh: 100,
+                    delay: 100,
+                    refresh: 50,
                     pause: false,
                     ttl: LOCAL_VOLUME_CHART_DURATION * 1.5
                 },
@@ -119,7 +119,7 @@ const arduinoButtons = new Chart(ctx2, {
                     display: true,
                     text: 'Botones'
                 },
-                max: 1.5
+                max: 1.2
             }
         },
         plugins: {
@@ -128,7 +128,7 @@ const arduinoButtons = new Chart(ctx2, {
                 text: 'Actividad botones'
             },
             legend: {
-                display: false
+                display: true
             }
         },
         animation: {
@@ -254,12 +254,15 @@ const localIllumination = new Chart(ctx4, {
 });
 
 
-let lastTimestamp;
-socket.on('new_data_point', function (data) {
-    if (lastTimestamp && data.timestamp - lastTimestamp > MAX_INTERRUPTION_DURATION) {
+socket.on('connect', () => {
+    console.log('Connected to server');
+});
+
+
+let lastIlluminationUpdate;
+socket.on('illumination_update', function (data) {
+    if (lastIlluminationUpdate && data.timestamp - lastIlluminationUpdate > MAX_INTERRUPTION_DURATION) {
         arduinoIllumination.data.datasets[0].data.push({ x: data.timestamp, y: null });
-        arduinoButtons.data.datasets[0].data.push({ x: data.timestamp, y: null });
-        arduinoButtons.data.datasets[1].data.push({ x: data.timestamp, y: null });
     }
     
     arduinoIllumination.data.datasets[0].data.push({
@@ -267,17 +270,23 @@ socket.on('new_data_point', function (data) {
         y: data.illumination
     });
 
-    arduinoButtons.data.datasets[0].data.push({
-        x: data.timestamp,
-        y: data.buttonA
-    });
+    lastIlluminationUpdate = data.timestamp;
+});
 
-    arduinoButtons.data.datasets[1].data.push({
-        x: data.timestamp,
-        y: data.buttonB
-    });
 
-    lastTimestamp = data.timestamp;
+let lastButtonUpdate;
+socket.on('buttons_update', function (data) {
+    if (lastButtonUpdate && data.timestamp - lastButtonUpdate > MAX_INTERRUPTION_DURATION) {
+        arduinoButtons.data.datasets[0].data.push({ x: data.timestamp, y: null });
+        arduinoButtons.data.datasets[1].data.push({ x: data.timestamp, y: null });
+    }
+
+    arduinoButtons.data.datasets[data.button - 2].data.push({
+        x: data.timestamp,
+        y: data.buttonState ? 1 : 0
+    });
+    
+    lastButtonUpdate = data.timestamp;
 });
 
 
