@@ -73,9 +73,12 @@ def sync_time():
     timeMs = time.time_ns() // 1_000_000
     data = struct.pack('<IH', timeMs // 1000, timeMs % 1000);
 
-    with arduino:
-        arduino.write(SYNC_MSG)
-        arduino.write(data)
+    try:
+        with arduino:
+            arduino.write(SYNC_MSG)
+            arduino.write(data)
+    except Exception as e:
+        print(e)
 
 
 @app.route('/sync-time', methods=['POST'])

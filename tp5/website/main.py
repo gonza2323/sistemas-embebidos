@@ -17,15 +17,14 @@ arduino = SerialConnection(verbose=debug_serial)
 def serial_read():
     while True:
         try:
-            with arduino:
-                if arduino.in_waiting() > 0:
-                    timestamp = time.time_ns() // 1_000_000
-                    with arduino:
-                        illumination = int.from_bytes(arduino.read(2), byteorder='little')
-                    data = {}
-                    data["timestamp"] = timestamp
-                    data["illumination"] = illumination / 1024 * 100
-                    socketio.emit('new_data_point', data)
+            if arduino.in_waiting() > 0:
+                timestamp = time.time_ns() // 1_000_000
+                with arduino:
+                    illumination = int.from_bytes(arduino.read(2), byteorder='little')
+                data = {}
+                data["timestamp"] = timestamp
+                data["illumination"] = illumination / 1024 * 100
+                socketio.emit('new_data_point', data)
             
             socketio.sleep(0.10)
         
