@@ -95,6 +95,8 @@ Una vez andando el servidor, se puede acceder a la página en http://localhost:5
 
 Se puede setear la variable de entorno `DEBUG_SERIAL=1` para obtener logs de debugging de la conexión serial. Si ejecutamos con flask o el script, el flag `--debug` también activará el debugging de la conexión serial.
 
+El servidor funciona tanto con la placa Arduino como con el simulador Wokwi. Si se pierde la conexión, intenta restablecerla con cualquiera de los dos que se encuentre disponible. Si ambos están disponibles, dará prioridad a la placa.
+
 ## Prueba
 
 En la página web para el TP1, deberían funcionar los controles de los LEDs tanto en el simulador como en la placa Arduino. Lo mismo para la lectura de la simulación.
