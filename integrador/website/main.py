@@ -55,8 +55,11 @@ def serial_read():
 @socketio.on('data')
 def handle_data(data):
     data = struct.pack('<f', data)
-    with arduino:
-        arduino.write(data)
+    try:
+        with arduino:
+            arduino.write(data)
+    except Exception as e:
+        print(e)
 
 
 @app.route('/', methods=['GET'])
