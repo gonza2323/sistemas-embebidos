@@ -39,56 +39,61 @@ Dentro del entorno, instalar los requerimientos:
 pip install -r requirements.txt
 ```
 
-Ejecutar el script de setup, que instala arduino-cli, la configuración de la placa, y configura los permisos correctamente para que el usuario pueda acceder al puerto serial.
+Una vez instalados los requerimientos, tenemos dos opciones para ejecutar la aplicación de algún TP. Conectando una placa Arduino a la PC, o utilizando el simulador Wokwi para Arduino.
+
+
+### A) Usando la placa Arduino
+
+Ejecutar el script de setup, que instala arduino-cli, la configuración de la placa, y configura los permisos correctamente para que el usuario pueda acceder al puerto serial. Este paso solo es necesario una vez.
 
 ```bash
-./setup_arduino.sh
+sudo ./arduino_setup.sh
 ```
 
-Una vez instalados los requerimientos, tenemos dos opciones para ejecutar la aplicación. Utilizar el simulador de Arduino, o conectar la placa a la PC.
+Para ejecutar un TP, primero debe conectarse la placa por USB. Luego podemos ejecutar el script `./upload.sh <nombre-tp>` para compilar y cargar el programa del tp correspondiente a la placa. `<nombre-tp>` corresponde al nombre del directorio de algún TP. Por ejemplo, para el trabajo práctico 2, sería `tp2`, y no `tp2/`.
 
-### A) Usando el simulador de Arduino
+Para que funcione, el programa del Arduino debe estar en `<nombre-tp>/arduino/arduino.ino`.
 
-El simulador no arranca si no está compilado el programa de Arduino. Para ello, desde el directorio del proyecto, ejecutamos el script `./compile <directorio-tp>` para compilar el programa de Arduino del tp correspondiente. Por ejemplo:
+Si hay problemas de permisos para acceder al Arduino, es porque nunca se ejecutó el script `./setup.sh`.
+
+
+### B) Usando el simulador de Arduino
+
+El simulador no arranca si no está compilado el programa de Arduino. Para ello, desde el directorio del proyecto, ejecutamos el script `./compile <nombre-tp>` para compilar el programa de Arduino del tp correspondiente. Por ejemplo:
 
 ```bash
 ./compile.sh tp3
 ```
 
-Para que funcione, el programa del Arduino debe estar en `<directorio-tp>/arduino/arduino.ino`.
+Para que funcione, el programa del Arduino debe estar en `<nombre-tp>/arduino/arduino.ino`.
 
 Ahora sí, podemos arrancar el simulador en VSCode apretando `F1` o `Shift`+`Ctrl`+`P` y buscando la opción "Wokwi: Select Config File", seleccionando la configuración del tp que queramos, y luego buscar y ejecutar la opción "Wokwi: Start Simulator".
 
 **La simulación debe estar visible para que no se detenga, conviene colocarla como una nueva pestaña a un costado en el VSCode.**
 
-### B) Usando la placa Arduino
 
-Primero debe conectarse la placa por USB. Luego podemos ejecutar el script `./upload.sh <directorio-tp>` para compilar y cargar el programa del tp correspondiente a la placa.
-
-Si hay problemas de permisos, es porque nunca se ejecutó el script de setup `./setup.sh`. Alternativamente, ejecutar `sudo chmod 777 /dev/ttyACM0`, pero habrá que hacerlo cada vez que se conecte nuevamente el Arduino a la PC.
-
-## Arrancar el servidor web
+### Arrancar el servidor web
 
 Para arrancar el servidor, tenemos varias opciones:
 
 ```
 # con un script de utilidad (utiliza flask)
-./start_server <directorio-tp>
+./start_server <nombre-tp>
 ```
 
 ```
 # como módulo de python
-python3 -m <directorio-tp>.website.main
+python3 -m <nombre-tp>.website.main
 ```
 
 ```
 # con flask
-flask --app <directorio-tp>.website.main run
+flask --app <nombre-tp>.website.main run
 ```
 
 Una vez andando el servidor, se puede acceder a la página en http://localhost:5000
 
-Se puede setear la variable de entorno `DEBUG_SERIAL=1` para obtener logs de debugging de la conexión serial. Si ejecutamos con flask o el script, utilizar el flag `--debug` también activará esta opción.
+Se puede setear la variable de entorno `DEBUG_SERIAL=1` para obtener logs de debugging de la conexión serial. Si ejecutamos con flask o el script, el flag `--debug` también activará el debugging de la conexión serial.
 
 ## Prueba
 
