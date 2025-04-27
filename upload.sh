@@ -8,4 +8,4 @@ if [ -z "$tp_dir" ] || [ ! -d "./$tp_dir" ]; then
 fi
 
 ./compile.sh "$tp_dir"
-"$HOME/.local/bin/arduino-cli" upload -p /dev/arduino --fqbn arduino:avr:uno "./$tp_dir/arduino/arduino.ino"
+arduino-cli upload -p /dev/arduino --fqbn arduino:avr:uno "./$tp_dir/arduino/arduino.ino"

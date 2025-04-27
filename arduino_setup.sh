@@ -1,40 +1,51 @@
 #!/bin/env bash
 
 
-if [ "$EUID" -ne 0 ]; then
-  echo "Ejecute el script con sudo: sudo $0"
+# Verificar que no se ejecutó con sudo
+if [ "$EUID" -eq 0 ]; then
+  echo "No ejecute el script como superusuario"
   exit 1
 fi
 
-CURRENT_USER=$(logname || echo "$SUDO_USER")
-USER_HOME=$(eval echo ~$(logname))
-
 
 # INSTALAR ARDUINO-CLI
-INSTALL_DIR="$USER_HOME/.local/bin"
+INSTALL_DIR="$HOME/.local/bin"
 
 echo "Instalando arduino-cli..."
-sudo -u "$CURRENT_USER" mkdir -p $USER_HOME/.local/bin
-sudo -u "$CURRENT_USER" curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sudo -u "$CURRENT_USER" BINDIR=$INSTALL_DIR sh > /dev/null
-sudo -u "$CURRENT_USER" $USER_HOME/.local/bin/arduino-cli core install arduino:avr > /dev/null
+mkdir -p "$HOME/.local/bin"
+sudo -u "$USER" curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=$INSTALL_DIR sh > /dev/null
 
-# Agregar al PATH
-if ! grep -q "$INSTALL_DIR" "$USER_HOME/.bashrc"; then
-    echo "export PATH=\"\$PATH:$INSTALL_DIR\"" >> "$USER_HOME/.bashrc"
+# Agregar ~/.local/bin al PATH si no lo está
+CONFIG_FILE="$HOME/.bash_profile"
+[ ! -f "$CONFIG_FILE" ] && CONFIG_FILE="$HOME/.profile"
+
+if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
+    echo "" >> "$CONFIG_FILE"
+    echo "# Added by installer" >> "$CONFIG_FILE"
+    echo 'if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then' >> "$CONFIG_FILE"
+    echo '    PATH="$HOME/.local/bin:$PATH"' >> "$CONFIG_FILE"
+    echo 'fi' >> "$CONFIG_FILE"
     echo "Se agregó arduino-cli ($INSTALL_DIR) al PATH"
+
+    export PATH="$HOME/.local/bin:$PATH"
+    echo -e "\e[1;33mEjecute source $CONFIG_FILE o cierre la consola para refrescar el PATH!!!\e[0m"
 fi
+
+# Instalar configuración de la placa
+arduino-cli core install arduino:avr > /dev/null
 
 
 # CONFIGURAR PERMISOS PARA ACCEDER AL ARDUINO
 
-echo "Configurando acceso al puerto serial..."
-
 # Crear reglas
+
+echo "Configurando acceso al puerto serial..."
+echo "Se requieren permisos de superusuario para configurar el puerto serial"
+
 UDEV_RULES_FILE="/etc/udev/rules.d/99-arduino.rules"
+sudo echo "Creando reglas en $UDEV_RULES_FILE..."
 
-echo "Creando reglas en $UDEV_RULES_FILE..."
-
-cat > "$UDEV_RULES_FILE" << 'EOF'
+sudo cat > "$UDEV_RULES_FILE" << 'EOF'
 # Arduino Uno and Mega 2560
 SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", GROUP="dialout", MODE="0666", SYMLINK+="arduino"
 # Arduino Uno WiFi Rev2
@@ -46,13 +57,13 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="239a", GROUP="dialout", MODE="0666", SYMLINK
 EOF
 
 echo "Añadiendo usuario al grupo dialout..."
-usermod -a -G dialout "$CURRENT_USER"
+sudo usermod -a -G dialout "$USER"
 
 # Recargar reglas
 echo "Refrescando reglas..."
-udevadm control --reload-rules
-udevadm trigger
+sudo udevadm control --reload-rules
+sudo udevadm trigger
 
-echo "Listo! Cierra y vuelve a iniciar sesión para completar"
+echo "Listo! Tal vez deba volver a iniciar sesión para completar"
 
 exit 0

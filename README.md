@@ -47,7 +47,7 @@ Una vez instalados los requerimientos, tenemos dos opciones para ejecutar la apl
 Ejecutar el script de setup, que instala arduino-cli, la configuración de la placa, y configura los permisos correctamente para que el usuario pueda acceder al puerto serial. Este paso solo es necesario una vez.
 
 ```bash
-sudo ./arduino_setup.sh
+./arduino_setup.sh
 ```
 
 Para ejecutar un TP, primero debe conectarse la placa por USB. Luego podemos ejecutar el script `./upload.sh <nombre-tp>` para compilar y cargar el programa del tp correspondiente a la placa. `<nombre-tp>` corresponde al nombre del directorio de algún TP. Por ejemplo, para el trabajo práctico 2, sería `tp2`, y no `tp2/`.

@@ -7,4 +7,4 @@ if [ -z "$tp_dir" ] || [ ! -d "./$tp_dir" ]; then
   exit 1
 fi
 
-"$HOME/.local/bin/arduino-cli" compile --fqbn arduino:avr:uno --libraries "./$tp_dir/arduino/libraries" --output-dir "./$tp_dir/arduino/build" "./$tp_dir/arduino/arduino.ino"
+arduino-cli compile --fqbn arduino:avr:uno --libraries "./$tp_dir/arduino/libraries" --output-dir "./$tp_dir/arduino/build" "./$tp_dir/arduino/arduino.ino"
