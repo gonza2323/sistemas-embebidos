@@ -20,11 +20,8 @@ sudo -u "$CURRENT_USER" $USER_HOME/.local/bin/arduino-cli core install arduino:a
 
 # Agregar al PATH
 if ! grep -q "$INSTALL_DIR" "$USER_HOME/.bashrc"; then
-    # If not found, add it to the .bashrc
     echo "export PATH=\"\$PATH:$INSTALL_DIR\"" >> "$USER_HOME/.bashrc"
-    echo "Directory added to $USER_HOME/.bashrc"
-else
-    echo "Directory already in PATH in $USER_HOME/.bashrc"
+    echo "Se agregó arduino-cli ($INSTALL_DIR) al PATH"
 fi
 
 

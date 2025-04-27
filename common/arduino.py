@@ -100,21 +100,21 @@ class SerialConnection:
             return self.serial.read(bytes)
         except Exception as e:
             self.is_connected = False
-            raise Exception("Failed reading data from Arduino")
+            raise Exception("Failed to read data from Arduino")
     
     def write(self, data):
         try:
             self.serial.write(data)
         except Exception as e:
             self.is_connected = False
-            raise Exception("Failed writing data to Arduino")
+            raise Exception("Failed to write data to Arduino")
     
     def in_waiting(self):
         try:
             return self.serial.in_waiting
         except Exception as e:
             self.is_connected = False
-            raise Exception("Failed checking if there's data available from Arduino")
+            raise Exception("Failed to check if there's data available from the Arduino")
     
     def close(self):
         self.stop_monitoring()
