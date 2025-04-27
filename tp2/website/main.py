@@ -1,11 +1,10 @@
 from flask import Flask
-from flask import url_for
 from flask import render_template
 from flask import request
 from flask import jsonify
-from flask_socketio import SocketIO, emit
-import serial
-import sys
+from flask_socketio import SocketIO
+from common.arduino import SerialConnection
+import os
 
 # valores iniciales
 readingLuminosity = True
@@ -18,38 +17,21 @@ READ_OFF = ord('N');
 ALARM_TRIGGERED = ord('A');
 
 
-# inicialización
+# setup app
+debug_serial = os.getenv('FLASK_DEBUG') == '1' or os.getenv('DEBUG_SERIAL') == '1'
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
-port = '/dev/ttyACM0' if not app.debug else 'rfc2217://localhost:4000'
-
-try:
-    if (app.debug):
-        ser = serial.serial_for_url(
-            port, baudrate=9600, bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
-            xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None
-        )
-    else:
-        ser = serial.Serial(
-            port, baudrate=9600, bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
-            xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None,
-            exclusive=None)
-except Exception as e:
-    print(f"Error connecting to serial port '{port}'.")
-    print("If --debug flag is set, make sure the simulator is running, otherwise, an Arduino board should be connected")
-    sys.exit(1);
+arduino = SerialConnection(verbose=debug_serial)
 
 
 # lectura del puerto serial
 def serial_read():
     while True:
         try:
-            if ser.in_waiting > 0:
-                data = ser.read(2)
+            if arduino.in_waiting() > 0:
+                with arduino:
+                    data = arduino.read(2)
                 first_byte = data[0]
-                second_byte = data[1]
 
                 global readingLuminosity, alarmTriggered
 
@@ -64,18 +46,15 @@ def serial_read():
                     alarmTriggered = True
                     socketio.emit('alarm', 0)
                 else:
-                    illumination = int.from_bytes(data, byteorder='big')
+                    illumination_data = int.from_bytes(data, byteorder='big')
+                    illumination = int(illumination_data / 1024 * 100)
                     socketio.emit('illumination_update', {'illumination': illumination})
             
             socketio.sleep(0.250)
         
         except Exception as e:
-            print(f"Error reading serial port: {e}")
+            print(e)
             socketio.sleep(1)
-
-
-def convertNumStr2Byte(brightness):
-    return max(0, min(int(brightness), 255))
 
 
 @app.route('/update', methods=['POST'])
@@ -86,7 +65,8 @@ def update():
 
         if readIllumination is not None:
             char = READ_ON if readIllumination else READ_OFF
-            ser.write(bytes([char]))
+            with arduino:
+                arduino.write(bytes([char]))
 
         return '', 204
 
@@ -103,4 +83,9 @@ def index():
     )
 
 
+# inicializar app
 socketio.start_background_task(serial_read)
+
+if __name__ == "__main__":
+    flask_debug = os.getenv('FLASK_DEBUG') == '1'
+    socketio.run(app, debug=flask_debug)

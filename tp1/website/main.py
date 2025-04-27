@@ -1,53 +1,39 @@
 from flask import Flask
-from flask import url_for
 from flask import render_template
 from flask import request
 from flask import jsonify
-from flask_socketio import SocketIO, emit
-import serial
-import sys
+from flask_socketio import SocketIO
+from common.arduino import SerialConnection
+import os
 
-# valores iniciales
+
+# variables
 led09brightness = 255
 led10brightness = 64
 led11brightness = 16
 led13status = True
 
 
+# setup app
+debug_serial = os.getenv('FLASK_DEBUG') == '1' or os.getenv('DEBUG_SERIAL') == '1'
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
-port = '/dev/ttyACM0' if not app.debug else 'rfc2217://localhost:4000'
-
-try:
-    if (app.debug):
-        ser = serial.serial_for_url(
-            port, baudrate=9600, bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
-            xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None
-        )
-    else:
-        ser = serial.Serial(
-            port, baudrate=9600, bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1,
-            xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=None,
-            exclusive=None)
-except Exception as e:
-    print(f"Error connecting to serial port '{port}'.")
-    print("If --debug flag is set, make sure the simulator is running, otherwise, an Arduino board should be connected")
-    sys.exit(1);
+arduino = SerialConnection(verbose=debug_serial)
 
 
 def serial_read():
     while True:
         try:
-            if ser.in_waiting > 0:
-                illumination = int.from_bytes(ser.read(2), byteorder='big')
+            if arduino.in_waiting() > 0:
+                with arduino:
+                    analogValue = int.from_bytes(arduino.read(2), byteorder='little')
+                illumination = int(analogValue / 1024 * 100)
                 socketio.emit('illumination_update', {'illumination': illumination})
-            
+                
             socketio.sleep(0.250)
         
         except Exception as e:
-            print(f"Error reading serial port: {e}")
+            print(e)
             socketio.sleep(1)
 
 
@@ -55,28 +41,33 @@ def convertNumStr2Byte(brightness):
     return max(0, min(int(brightness), 255))
 
 
-def updateArduino():
-    data = bytes([
-        led09brightness,
-        led10brightness,
-        led11brightness,
-        int(led13status)
-    ])
-    ser.write(data)
-
-
 @app.route('/update', methods=['POST'])
 def update():
     try:
         data = request.get_json()
 
-        global led09brightness, led10brightness, led11brightness, led13status
-        led09brightness = convertNumStr2Byte(data.get('led09', 0))
-        led10brightness = convertNumStr2Byte(data.get('led10', 0))
-        led11brightness = convertNumStr2Byte(data.get('led11', 0))
-        led13status = data.get('led13', '') == 'on'
+        led09 = convertNumStr2Byte(data.get('led09', 0))
+        led10 = convertNumStr2Byte(data.get('led10', 0))
+        led11 = convertNumStr2Byte(data.get('led11', 0))
+        led13 = data.get('led13', '') == 'on'
 
-        updateArduino()
+        # envío de datos al arduino
+        data = bytes([
+            led09,
+            led10,
+            led11,
+            int(led13)
+        ])
+        
+        with arduino:
+            arduino.write(data)
+            
+        # actualizamos el estado en el servidor
+        global led09brightness, led10brightness, led11brightness, led13status
+        led09brightness = led09
+        led10brightness = led10
+        led11brightness = led11
+        led13status = led13
 
         return '', 204
 
@@ -95,5 +86,9 @@ def index():
     )
 
 
+# inicializar app
 socketio.start_background_task(serial_read)
-updateArduino();
+
+if __name__ == "__main__":
+    flask_debug = os.getenv('FLASK_DEBUG') == '1'
+    socketio.run(app, debug=flask_debug)

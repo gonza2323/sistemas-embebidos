@@ -69,9 +69,6 @@ const chart = new Chart(ctx, {
 });
 
 
-
-
-
 socket.on('new_data_point', function (data) {
     if (lastTimestamp && data.timestamp - lastTimestamp > MAX_INTERRUPTION_DURATION)
         chart.data.datasets[0].data.push({ x: data.timestamp, y: null });

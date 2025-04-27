@@ -4,7 +4,7 @@
 
 - Python
 
-- VSCode y Extensión Wokwi Simulator para VSCode [Link](https://marketplace.visualstudio.com/items?itemName=wokwi.wokwi-vscode). Esto es si queremos simular el Arduino y no utilizar la placa real.
+- (Opcional) VSCode y Extensión Wokwi Simulator para VSCode [Link](https://marketplace.visualstudio.com/items?itemName=wokwi.wokwi-vscode). Esto es si queremos simular el Arduino y no utilizar una placa Arduino real.
     
     Después de instalarla, hay que apretar `F1` en VSCode y buscar la opción "Wokwi: Request New License". Se abrirá un navegador y hacemos click en "Get Your License". Pide iniciar sesión.
 
@@ -42,7 +42,7 @@ pip install -r requirements.txt
 Ejecutar el script de setup, que instala arduino-cli, la configuración de la placa, y configura los permisos correctamente para que el usuario pueda acceder al puerto serial.
 
 ```bash
-./setup.sh
+./setup_arduino.sh
 ```
 
 Una vez instalados los requerimientos, tenemos dos opciones para ejecutar la aplicación. Utilizar el simulador de Arduino, o conectar la placa a la PC.
@@ -65,15 +65,30 @@ Ahora sí, podemos arrancar el simulador en VSCode apretando `F1` o `Shift`+`Ctr
 
 Primero debe conectarse la placa por USB. Luego podemos ejecutar el script `./upload.sh <directorio-tp>` para compilar y cargar el programa del tp correspondiente a la placa.
 
-Si hay problemas de permisos, es porque no se ejecutó nunca el script de setup `./setup.sh`. Alternativamente, ejecutar `sudo chmod 777 /dev/ttyACM0`
+Si hay problemas de permisos, es porque nunca se ejecutó el script de setup `./setup.sh`. Alternativamente, ejecutar `sudo chmod 777 /dev/ttyACM0`, pero habrá que hacerlo cada vez que se conecte nuevamente el Arduino a la PC.
 
 ## Arrancar el servidor web
 
-El servidor web no arranca si no está ejecutándose el simulador, o alternativamente, se encuentra conectada la placa Arduino.
+Para arrancar el servidor, tenemos varias opciones:
 
-Dentro del directorio del proyecto, ejecutamos el script `./start_server.sh <directorio-tp>`. Si estamos utilizando el simulador de Arduino, debemos agregar el flag `--debug`, de lo contrario no arrancará el servidor.
+```
+# con un script de utilidad (utiliza flask)
+./start_server <directorio-tp>
+```
+
+```
+# como módulo de python
+python3 -m <directorio-tp>.website.main
+```
+
+```
+# con flask
+flask --app <directorio-tp>.website.main run
+```
 
 Una vez andando el servidor, se puede acceder a la página en http://localhost:5000
+
+Se puede setear la variable de entorno `DEBUG_SERIAL=1` para obtener logs de debugging de la conexión serial. Si ejecutamos con flask o el script, utilizar el flag `--debug` también activará esta opción.
 
 ## Prueba
 

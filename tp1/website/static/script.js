@@ -4,11 +4,7 @@
 const MIN_UPDATE_INTERVAL = 350;
 let rangeUpdateInterval;
 
-const socketHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:5000'
-    : 'https://embebidos.ddns.net';
-
-const socket = io(socketHost);
+const socket = io();
 
 const form = document.querySelector('form');
 const illuminationIndicator = document.querySelector('#illumination');
@@ -16,7 +12,7 @@ const illuminationIndicator = document.querySelector('#illumination');
 
 socket.on("illumination_update", (data) => {
     const illumination = data.illumination;
-    illuminationIndicator.textContent = illumination + ' lx';
+    illuminationIndicator.textContent = illumination + '%';
 });
 
 async function sendUpdate(event) {

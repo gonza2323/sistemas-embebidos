@@ -1,5 +1,6 @@
 #!/bin/env bash
 
+
 if [ "$EUID" -ne 0 ]; then
   echo "Ejecute el script con sudo: sudo $0"
   exit 1
@@ -10,11 +11,21 @@ USER_HOME=$(eval echo ~$(logname))
 
 
 # INSTALAR ARDUINO-CLI
+INSTALL_DIR="$USER_HOME/.local/bin"
 
 echo "Instalando arduino-cli..."
 sudo -u "$CURRENT_USER" mkdir -p $USER_HOME/.local/bin
-sudo -u "$CURRENT_USER" curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sudo -u "$CURRENT_USER" BINDIR=$USER_HOME/.local/bin sh > /dev/null
+sudo -u "$CURRENT_USER" curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sudo -u "$CURRENT_USER" BINDIR=$INSTALL_DIR sh > /dev/null
 sudo -u "$CURRENT_USER" $USER_HOME/.local/bin/arduino-cli core install arduino:avr > /dev/null
+
+# Agregar al PATH
+if ! grep -q "$INSTALL_DIR" "$USER_HOME/.bashrc"; then
+    # If not found, add it to the .bashrc
+    echo "export PATH=\"\$PATH:$INSTALL_DIR\"" >> "$USER_HOME/.bashrc"
+    echo "Directory added to $USER_HOME/.bashrc"
+else
+    echo "Directory already in PATH in $USER_HOME/.bashrc"
+fi
 
 
 # CONFIGURAR PERMISOS PARA ACCEDER AL ARDUINO

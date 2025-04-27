@@ -54,7 +54,7 @@ TaskHandle_t blinkLedTaskHandle;
 // inicialización
 void setup() {
     // puerto serial y pines
-    Serial.begin(9600);
+    Serial.begin(115200);
     pinMode(2, INPUT);
     pinMode(3, INPUT);
     pinMode(6, OUTPUT);

@@ -4,7 +4,7 @@
 bool ledStatus = false;
 
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(115200);
     pinMode(A3, INPUT);
     pinMode(10, OUTPUT);
 }

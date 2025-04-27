@@ -1,11 +1,7 @@
 "use strict";
 
 
-const socketHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:5000'
-    : 'https://embebidos.ddns.net';
-
-const socket = io(socketHost);
+const socket = io();
 
 
 const illuminationField = document.querySelector('#illumination-field');
@@ -31,7 +27,7 @@ socket.on("alarm", (data) => {
 
 socket.on("illumination_update", (data) => {
     const illumination = data.illumination;
-    illuminationIndicator.textContent = illumination + ' lx';
+    illuminationIndicator.textContent = illumination + '%';
 });
 
 async function update(event) {

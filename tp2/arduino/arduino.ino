@@ -3,7 +3,7 @@
 
 
 // config
-int ALARM_THRESHOLD = 800;
+int ALARM_THRESHOLD = 80.0 / 100.0 * 1024;
 int READ_INTERVAL = 200;
 int SEND_INTERVAL = 3000;
 int RECEIVE_MSG_INTERVAL = 200;
@@ -35,7 +35,7 @@ typedef struct {
 // inicialización
 void setup() {
     // puerto serial y pines
-    Serial.begin(9600);
+    Serial.begin(115200);
     
     pinMode(3, INPUT);
     pinMode(A3, INPUT);
@@ -81,8 +81,7 @@ void TaskReadIllumination(void *pvParameters) {
         if (xSemaphoreTake(readIlluminationSemaphore, portMAX_DELAY) == pdTRUE) {
             xSemaphoreGive(readIlluminationSemaphore);
             
-            int analogValue = analogRead(A3);
-            illumination = calculateIllumination(analogValue);
+            illumination = analogRead(A3);
 
             if (illumination > ALARM_THRESHOLD && !alarmFiring) {
                 alarmFiring = true;
@@ -183,18 +182,6 @@ void sendInt(int value) {
 
 void sendMessage(char message) {
     sendInt(256 * message + FILL);
-}
-
-int calculateIllumination(int analogValue) {
-    // These constants should match the photoresistor's attributes
-    const float GAMMA = 0.7;
-    const float RL10 = 50;
-
-    float voltage = analogValue / 1024. * 5;
-    float resistance = 2000 * voltage / (1 - voltage / 5);
-    float illumination = pow(RL10 * 1e3 * pow(10, GAMMA) / resistance, (1 / GAMMA));
-
-    return illumination;
 }
 
 void buttonHandler() {

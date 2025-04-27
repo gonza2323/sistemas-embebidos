@@ -45,7 +45,7 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(2), processButton2, CHANGE);
     attachInterrupt(digitalPinToInterrupt(3), processButton3, CHANGE);
     
-    Serial.begin(9600);
+    Serial.begin(115200);
 }
 
 void loop() {
