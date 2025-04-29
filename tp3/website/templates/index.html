@@ -21,17 +21,20 @@
         <button id="update-time">Actualizar hora del Arduino</button>
         <button id="request-events">Mostrar eventos ocurridos</button>
         <button id="erase-memory">Borrar memoria EEPROM</button>
-        <table>
-            <thead>
-                <tr>
-                    <th>Evento</th>
-                    <th>Unix Timestamp</th>
-                    <th>Hora UTC-03:00</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
+        
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Evento</th>
+                        <th>Unix Timestamp</th>
+                        <th>Hora UTC-03:00</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
         <div id="no-events-placeholder">
             No hay eventos registrados
         </div>

@@ -124,4 +124,4 @@ socketio.start_background_task(serial_read)
 
 if __name__ == "__main__":
     flask_debug = os.getenv('FLASK_DEBUG') == '1'
-    socketio.run(app, debug=flask_debug)
+    socketio.run(app, debug=flask_debug, host='0.0.0.0')

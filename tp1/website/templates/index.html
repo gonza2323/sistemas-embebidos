@@ -18,26 +18,16 @@
     <div class="authors">Adriano Fabris, Gonzalo Padilla, Mariano Robledo</div>
 
     <form action="update" method="post">
-        <label for="led09">
-            LED 9
-            <input type="range" name="led09" id="led09" min="0" max="255" step="1" value="{{ led09brightness }}">
-        </label>
-        <label for="led10">
-            LED 10
-            <input type="range" name="led10" id="led10" min="0" max="255" step="1" value="{{ led10brightness }}">
-        </label>
-        <label for="led11">
-            LED 11
-            <input type="range" name="led11" id="led11" min="0" max="255" step="1" value="{{ led11brightness }}">
-        </label>
-        <label for="led13">
-            LED 13
-            <input type="checkbox" name="led13" id="led13" {% if led13status %}checked{% endif %}>
-        </label>
-        <div>
-            Iluminación:
-            <span id="illumination">Cargando...</span>
-        </div>
+        <label for="led09">LED 9</label>
+        <input type="range" name="led09" id="led09" min="0" max="255" step="1" value="{{ led09brightness }}">
+        <label for="led10">LED 10</label>
+        <input type="range" name="led10" id="led10" min="0" max="255" step="1" value="{{ led10brightness }}">
+        <label for="led11">LED 11</label>
+        <input type="range" name="led11" id="led11" min="0" max="255" step="1" value="{{ led11brightness }}">
+        <label for="led13">LED 13</label>
+        <input type="checkbox" name="led13" id="led13" {% if led13status %}checked{% endif %}>
+        <div>Iluminación:</div>
+        <span id="illumination">Cargando...</span>
     </form>
 
 </body>

@@ -7,7 +7,7 @@ from common.arduino import SerialConnection
 import os
 
 
-# variables
+# estado de los LEDs
 led09brightness = 255
 led10brightness = 64
 led11brightness = 16
@@ -21,6 +21,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 arduino = SerialConnection(verbose=debug_serial)
 
 
+# lectura del puerto serial
 def serial_read():
     while True:
         try:
@@ -59,8 +60,11 @@ def update():
             int(led13)
         ])
         
-        with arduino:
-            arduino.write(data)
+        try:
+            with arduino:
+                arduino.write(data)
+        except Exception as e:
+            return jsonify(error="Arduino Error", message="Failed to send data to arduino."), 503
             
         # actualizamos el estado en el servidor
         global led09brightness, led10brightness, led11brightness, led13status
@@ -91,4 +95,4 @@ socketio.start_background_task(serial_read)
 
 if __name__ == "__main__":
     flask_debug = os.getenv('FLASK_DEBUG') == '1'
-    socketio.run(app, debug=flask_debug)
+    socketio.run(app, debug=flask_debug, host='0.0.0.0')

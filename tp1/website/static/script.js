@@ -31,11 +31,13 @@ async function sendUpdate(event) {
             body: json
         });
 
-        if (!response.ok)
-            throw new Error('Network response was not ok ' + response.statusText);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `HTTP error ${response.status}`);
+        }
 
     } catch (error) {
-        console.error('There was an error:', error);
+        console.error('Request failed::', error);
     }
 }
 

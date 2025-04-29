@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Permissions-Policy" content="ambient-light-sensor=(self)">
     <title>Sistemas Embebidos | TP Integrador</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,6 +18,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-streaming/2.0.0/chartjs-plugin-streaming.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 
+    <script src="{{ url_for('static', filename='charts.js') }}" defer></script>
     <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
 <body>
@@ -26,33 +28,35 @@
     
     <form>
         <fieldset>
-            <legend>Qué dato mostrar en el Arduino?</legend>
-            <label>
-                <input type="radio" name="choice" value="volume" onclick="dataType='volume';">
-                Volumen
-            </label><br>
-            <label>
-                <input type="radio" name="choice" value="illumination" onclick="dataType='illumination';">
-                Iluminación
-            </label>
-        </fieldset>
-        <fieldset>
-            <legend>Sensibilidad</legend>
-            <label>
-                Volumen
-                <input type="range" name="volume-sensitivity">
-            </label><br>
-            <label>
-                Iluminación
-                <input type="range" name="light-sensitivity" >
-            </label>
+            <legend>Controles</legend>
+            <div></div>
+            <div>Dato a enviar</div>
+            <div>Sensibilidad</div>
+            <div></div>
+            <input type="radio" id="volume-button" name="streaming-mode" value="volume">
+            <label for="volume-button">Volumen</label>
+            <input type="range" id="volume-sensitivity-range" name="volume-sensitivity" min="0.2" max="5" step="0.05" value="1">
+            <div id="volume-sensitivity">100%</div>
+            <input type="radio" id="illumination-button" name="streaming-mode" value="illumination">
+            <label for="illumination-button">Iluminación</label>
+            <input type="range" id="light-sensitivity-range" name="light-sensitivity" min="0.2" max="5" step="0.05" value="1">
+            <div id="light-sensitivity">100%</div>
         </fieldset>
     </form>
-    <canvas id="arduino-illumination"></canvas>
-    <canvas id="arduino-buttons"></canvas>
-    <canvas id="local-volume"></canvas>
-    <canvas id="local-illumination"></canvas>
-    <div id="ilm">Iluminación</div>
-    <div id="out">Out</div>
+    <div class="charts">
+        <div class="chart-container">
+            <canvas id="arduino-illumination"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="arduino-buttons"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="local-illumination"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="local-volume"></canvas>
+        </div>
+    </div>
+    <div class="error"></div>
 </body>
 </html>

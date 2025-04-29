@@ -9,4 +9,4 @@ if [ -z "$tp_dir" ] || [ ! -d "./$tp_dir" ]; then
 fi
 
 source ./.venv/bin/activate > /dev/null
-flask --app "$tp_dir.website.main" run "$@"
+flask --app "$tp_dir.website.main" run --host=0.0.0.0 "$@"

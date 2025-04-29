@@ -26,11 +26,9 @@ def serial_read():
     while True:
         try:
             if arduino.in_waiting() > 0:
-                timestamp = time.time_ns() // 1_000_000
                 with arduino:
                     msg_type = arduino.read(1).decode()
                 data = {}
-                data["timestamp"] = timestamp
 
                 if msg_type == ILLUMINATION_MSG:
                     with arduino:
@@ -72,4 +70,4 @@ socketio.start_background_task(serial_read)
 
 if __name__ == "__main__":
     flask_debug = os.getenv('FLASK_DEBUG') == '1'
-    socketio.run(app, debug=flask_debug)
+    socketio.run(app, debug=flask_debug, host='0.0.0.0')

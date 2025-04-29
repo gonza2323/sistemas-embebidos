@@ -1,357 +1,294 @@
 "use strict";
 
 
-// iluminación
-const ARDUINO_ILLMUNATION_CHART_DURATION = 10000;
-const MAX_INTERRUPTION_DURATION = 7500;
-// audio
-const UPDATE_INTERVAL = 100;
-const SENSITIVITY = 3;
-const LOCAL_VOLUME_CHART_DURATION = 10000;
+// constantes
+const SEND_UPDATE_INTERVAL = 100;
+const DEFAULT_VOLUME_SENSITIVITY = 2;
+const DEFAULT_LIGHT_SENSITIVITY = 2;
 
-let dataType = "volume";
 
-Chart.register(ChartStreaming);
+// socket
 const socket = io();
 
 
-const ctx = document.getElementById('arduino-illumination').getContext('2d');
-const arduinoIllumination = new Chart(ctx, {
-    type: 'line',
-    data: {
-        datasets: [{
-            label: 'Iluminación',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderColor: 'rgb(240, 51, 51)',
-            borderWidth: 2,
-            pointRadius: 2,
-            data: []
-        }]
-    },
-    options: {
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Hora (UTC-3)'
-                },
-                type: 'realtime',
-                realtime: {
-                    duration: ARDUINO_ILLMUNATION_CHART_DURATION,
-                    delay: 750,
-                    refresh: 500,
-                    pause: false,
-                    ttl: ARDUINO_ILLMUNATION_CHART_DURATION * 2
-                },
-                ticks: {
-                    source: 'auto',
-                    autoSkip: true
-                }
-            },
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Iluminación (%)'
-                },
-                max: 100
-            }
-        },
-        plugins: {
-            title: {
-                display: true,
-                text: 'Iluminación en función del tiempo'
-            },
-            legend: {
-                display: false
-            }
-        },
-        animation: {
-            duration: 100
+// módulo de streaming de volumen de audio
+const volumeStream = function() {
+    let audioContext = null;
+    let stream = null;
+    let source = null;
+    let processor = null;
+    let active = false;
+    let permissionGranted = false;
+    let lastUpdateTime = null;
+    let initInProgress = false;
+    let volumeSensitivity = DEFAULT_VOLUME_SENSITIVITY;
+
+    async function initialize() {
+        if (permissionGranted || initInProgress) {
+            return;
         }
-    }
-});
+        
+        initInProgress = true;
+        
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioContext = new AudioContext();
+            permissionGranted = true;
 
-
-const ctx2 = document.getElementById('arduino-buttons').getContext('2d');
-const arduinoButtons = new Chart(ctx2, {
-    type: 'line',
-    data: {
-        datasets: [{
-            label: 'Botón 2',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderColor: 'rgb(255, 33, 33)',
-            borderWidth: 2,
-            pointRadius: 0,
-            data: []
-        },{
-            label: 'Botón 3',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderColor: 'rgb(26, 41, 250)',
-            borderWidth: 2,
-            pointRadius: 0,
-            data: []
-        }]
-    },
-    options: {
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Hora (UTC-3)'
-                },
-                type: 'realtime',
-                realtime: {
-                    duration: LOCAL_VOLUME_CHART_DURATION,
-                    delay: 100,
-                    refresh: 50,
-                    pause: false,
-                    ttl: LOCAL_VOLUME_CHART_DURATION * 1.5
-                },
-                ticks: {
-                    source: 'auto',
-                    autoSkip: true
-                }
-            },
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Botones'
-                },
-                max: 1.2
-            }
-        },
-        plugins: {
-            title: {
-                display: true,
-                text: 'Actividad botones'
-            },
-            legend: {
-                display: true
-            }
-        },
-        animation: {
-            duration: 100
+            source = audioContext.createMediaStreamSource(stream);
+            processor = audioContext.createScriptProcessor(2048, 1, 1);
+        
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+        
+            processor.onaudioprocess = processAudio;
+        } catch (error) {
+            console.error('Audio permission denied or error:', error);
+            permissionGranted = false;
         }
+
+        initInProgress = false;
     }
-});
 
-
-const ctx3 = document.getElementById('local-volume').getContext('2d');
-const localVolume = new Chart(ctx3, {
-    type: 'line',
-    data: {
-        datasets: [{
-            label: 'Volumen',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderColor: 'rgb(51, 54, 240)',
-            borderWidth: 2,
-            pointRadius: 2,
-            data: []
-        }]
-    },
-    options: {
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Hora (UTC-3)'
-                },
-                type: 'realtime',
-                realtime: {
-                    duration: LOCAL_VOLUME_CHART_DURATION,
-                    delay: 50,
-                    refresh: 100,
-                    pause: false,
-                    ttl: LOCAL_VOLUME_CHART_DURATION * 1.5
-                },
-                ticks: {
-                    source: 'auto',
-                    autoSkip: true
-                }
-            },
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Volumen (%)'
-                },
-                max: 100
-            }
-        },
-        plugins: {
-            title: {
-                display: true,
-                text: 'Volumen de audio (local) en función del tiempo'
-            },
-            legend: {
-                display: false
-            }
-        },
-        animation: {
-            duration: 100
+    function processAudio(event) {
+        if (lastUpdateTime === null) {
+            lastUpdateTime = Date.now();
         }
-    }
-});
 
-
-const ctx4 = document.getElementById('local-illumination').getContext('2d');
-const localIllumination = new Chart(ctx4, {
-    type: 'line',
-    data: {
-        datasets: [{
-            label: 'Iluminación',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderColor: 'rgb(25, 193, 34)',
-            borderWidth: 2,
-            pointRadius: 2,
-            data: []
-        }]
-    },
-    options: {
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Hora (UTC-3)'
-                },
-                type: 'realtime',
-                realtime: {
-                    duration: LOCAL_VOLUME_CHART_DURATION,
-                    delay: 50,
-                    refresh: 100,
-                    pause: false,
-                    ttl: LOCAL_VOLUME_CHART_DURATION * 1.5
-                },
-                ticks: {
-                    source: 'auto',
-                    autoSkip: true
-                }
-            },
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Iluminación (%)'
-                },
-                max: 100
-            }
-        },
-        plugins: {
-            title: {
-                display: true,
-                text: 'Iluminación (local) en función del tiempo'
-            },
-            legend: {
-                display: false
-            }
-        },
-        animation: {
-            duration: 100
-        }
-    }
-});
-
-
-socket.on('connect', () => {
-    console.log('Connected to server');
-});
-
-
-let lastIlluminationUpdate;
-socket.on('illumination_update', function (data) {
-    if (lastIlluminationUpdate && data.timestamp - lastIlluminationUpdate > MAX_INTERRUPTION_DURATION) {
-        arduinoIllumination.data.datasets[0].data.push({ x: data.timestamp, y: null });
-    }
-    
-    arduinoIllumination.data.datasets[0].data.push({
-        x: data.timestamp,
-        y: data.illumination
-    });
-
-    lastIlluminationUpdate = data.timestamp;
-});
-
-
-let lastButtonUpdate;
-socket.on('buttons_update', function (data) {
-    if (lastButtonUpdate && data.timestamp - lastButtonUpdate > MAX_INTERRUPTION_DURATION) {
-        arduinoButtons.data.datasets[0].data.push({ x: data.timestamp, y: null });
-        arduinoButtons.data.datasets[1].data.push({ x: data.timestamp, y: null });
-    }
-
-    arduinoButtons.data.datasets[data.button - 2].data.push({
-        x: data.timestamp,
-        y: data.buttonState ? 1 : 0
-    });
-    
-    lastButtonUpdate = data.timestamp;
-});
-
-
-navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-    const audioContext = new AudioContext();
-    const source = audioContext.createMediaStreamSource(stream);
-    const processor = audioContext.createScriptProcessor(2048, 1, 1);
-
-    source.connect(processor);
-    processor.connect(audioContext.destination);
-
-    let lastEmit = Date.now();
-
-    processor.onaudioprocess = (e) => {
         const now = Date.now();
-        if (now - lastEmit < UPDATE_INTERVAL) {
+        if (now - lastUpdateTime < SEND_UPDATE_INTERVAL) {
             return;
         }
     
-        const input = e.inputBuffer.getChannelData(0);
+        const input = event.inputBuffer.getChannelData(0);
         let sum = 0;
         for (let i = 0; i < input.length; i++) {
             sum += input[i] * input[i];
         }
         const rms = Math.sqrt(sum / input.length);
-        const volume = Math.log(1 + rms * 2**SENSITIVITY) / Math.log(1 + 2**SENSITIVITY);
+        const volume = rms ** (1 / volumeSensitivity)
     
-        if (dataType === "volume")
+        if (active) {
             socket.emit('data', volume);
+        }
 
         localVolume.data.datasets[0].data.push({
             x: now,
             y: volume * 100
         });
         
-        lastEmit = now;
-    };
-});
+        lastUpdateTime = now;
+    }
 
-try {
-    const ilm = document.getElementById('ilm');
-    const out = document.getElementById('out');
-    const lightSensor = new AmbientLightSensor();
-    setInterval(() => {
+    function setSensitivity(sensitivity) {
+        volumeSensitivity = sensitivity;
+    }
+
+    function startStream() { active = true; }
+    function stopStream() { active = false; }
+    function isInitialized() { return permissionGranted; }
+
+    
+    return {
+        initialize,
+        startStream,
+        stopStream,
+        setSensitivity,
+        isInitialized
+     };
+}();
+
+
+// modulo de streaming de iluminación
+const illuminationStream = function() {
+    let lightSensor = null;
+    let lightSensitivity = DEFAULT_LIGHT_SENSITIVITY;
+    let active = false;
+    let permissionGranted = false;
+    let initInProgress = false;
+    let maxIllumination = 60000;
+
+
+    function initialize() {
+        if (permissionGranted || initInProgress) {
+            return;
+        }
+        initInProgress = true;
+        const errorIndicator = document.querySelector('.error');
+
+        try {
+            
+            lightSensor = new AmbientLightSensor();
+            lightSensor.addEventListener('error', event => {
+                console.error('Sensor error:', event.error.name, event.error.message);
+            });
+
+            lightSensor.start();
+            permissionGranted = true;
+
+            setInterval(processIllumination, SEND_UPDATE_INTERVAL)
+        } catch (err) {
+            console.error('Ambient Light Sensor not supported or blocked:', err);
+        }
+        initInProgress = false;
+    }
+
+    function processIllumination() {
         const now = Date.now();
         const lightLevel = lightSensor.illuminance;
-        const lightPercentage = lightLevel / 60000
 
-        if (dataType === "illumination")
+        if (lightLevel > maxIllumination) {
+            maxIllumination = lightLevel;
+        }
+
+        const lightPercentage = (lightLevel / maxIllumination) ** (1 / lightSensitivity);
+
+        if (active) {
             socket.emit("data", lightPercentage);
+        }
 
-        ilm.textContent = lightPercentage;
         localIllumination.data.datasets[0].data.push({
             x: now,
             y: lightPercentage * 100
         });
-    }, 100);
+    }
 
-    lightSensor.addEventListener('error', event => {
-        console.error('Sensor error:', event.error.name, event.error.message);
-        out.textContent = 'Sensor error:' + event.error.name, event.error.message;
+    function setSensitivity(sensitivity) {
+        lightSensitivity = sensitivity;
+    }
+
+    function startStream() { active = true; }
+    function stopStream() { active = false; }
+    function isInitialized() { return permissionGranted; }
+
+    
+    initialize();
+    
+    return {
+        initialize,
+        startStream,
+        stopStream,
+        setSensitivity,
+        isInitialized
+    };
+}();
+
+
+// aplicación
+const app = function() {
+    let streamingMode = null;
+
+    async function setStreamingMode(mode) {
+        if (mode === "volume") {
+            if (!volumeStream.isInitialized()) {
+                await volumeStream.initialize();
+            }
+
+            if (volumeStream.isInitialized()) {
+                illuminationStream.stopStream();
+                volumeStream.startStream();
+                streamingMode = mode;
+            }
+
+        } else if (mode === "illumination") {
+            if (!illuminationStream.isInitialized()) {
+                illuminationStream.initialize();
+            }
+
+            if (illuminationStream.isInitialized()) {
+                volumeStream.stopStream();
+                illuminationStream.startStream();
+                streamingMode = mode;
+            }
+        }
+
+        ui.setStreamingMode(streamingMode);
+    }
+
+    setStreamingMode("volume");
+
+    return { setStreamingMode };
+}();
+
+
+// interfaz gráfica
+const ui = function() {
+    function initialize() {
+        document.querySelectorAll('input[name="streaming-mode"]').forEach( button =>
+            button.addEventListener('change', event =>{
+                const choice = event.target.value;
+                app.setStreamingMode(choice);
+            })
+        )
+
+        const volumeSensitivityRange = document.querySelector('#volume-sensitivity-range');
+        const volumeSensitivityIndicator = document.getElementById('volume-sensitivity');
+        volumeSensitivityRange.value = DEFAULT_VOLUME_SENSITIVITY;
+        volumeSensitivityIndicator.textContent = (DEFAULT_VOLUME_SENSITIVITY * 100).toFixed(0) + '%';
+        
+        volumeSensitivityRange.addEventListener('input', (event) => {
+            const sensitivity = Number(event.target.value);
+            volumeStream.setSensitivity(sensitivity);
+            volumeSensitivityIndicator.textContent = (sensitivity * 100).toFixed(0) + '%';
+        })
+        
+        const lightSensitivityRange = document.querySelector('#light-sensitivity-range');
+        const lightSensitivityIndicator = document.getElementById('light-sensitivity');
+        lightSensitivityRange.value = DEFAULT_LIGHT_SENSITIVITY;
+        lightSensitivityIndicator.textContent = (DEFAULT_LIGHT_SENSITIVITY * 100).toFixed(0) + '%';
+        
+        lightSensitivityRange.addEventListener('input', (event) => {
+            const sensitivity = Number(event.target.value);
+            illuminationStream.setSensitivity(sensitivity);
+            lightSensitivityIndicator.textContent = (sensitivity * 100).toFixed(0) + '%';
+        })
+    }
+
+    function setStreamingMode(mode) {
+        const radios = document.querySelectorAll(`input[name="streaming-mode"]`);
+        radios.forEach(radio => {
+            radio.checked = radio.value === mode;
+        });
+    }
+
+    initialize();
+
+    return { setStreamingMode };
+}()
+
+
+// updates del servidor
+
+let lastIlluminationUpdate;
+socket.on('illumination_update', function (data) {
+    const now = Date.now();
+
+    if (lastIlluminationUpdate && now - lastIlluminationUpdate > MAX_INTERRUPTION_DURATION) {
+        arduinoIllumination.data.datasets[0].data.push({ x: now, y: null });
+    }
+    
+    arduinoIllumination.data.datasets[0].data.push({
+        x: now,
+        y: data.illumination
     });
 
-    lightSensor.start();
-} catch (err) {
-    console.error('Ambient Light Sensor not supported or blocked:', err);
-    out.textContent = 'Ambient Light Sensor not supported or blocked:' + err
-}
+    lastIlluminationUpdate = now;
+});
+
+
+let lastButtonUpdate;
+socket.on('buttons_update', function (data) {
+    const now = Date.now();
+
+    if (lastButtonUpdate && now - lastButtonUpdate > MAX_INTERRUPTION_DURATION) {
+        arduinoButtons.data.datasets[0].data.push({ x: now, y: null });
+        arduinoButtons.data.datasets[1].data.push({ x: now, y: null });
+    }
+
+    arduinoButtons.data.datasets[data.button - 2].data.push({
+        x: now,
+        y: data.buttonState ? 1 : 0
+    });
+    
+    lastButtonUpdate = now;
+});

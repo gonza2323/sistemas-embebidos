@@ -4,22 +4,32 @@
 }
 
 body {
+    padding: 16px 8px;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    height: 100dvh;
 }
 
-h1, h2 {
+h1, h2, .authors {
+    flex: 0 0 auto;
     text-align: center;
 }
 
+.authors {
+    margin-top: 12px;
+}
+
 .box {
-    width: 600px;
+    min-height: 0;
+    flex: 0 1 auto;
+    max-width: 600px;
     margin-top: 32px;
-    background-color: rgb(164, 217, 248);
+    margin-left: auto;
+    margin-right: auto;
+    background-color: rgb(245, 240, 221);
     padding: 24px;
-    border-radius: 16px;
-    border: 2px solid rgb(81, 156, 255);
+    border-radius: 8px;
+    border: 2px solid rgb(36, 36, 36);
     box-shadow: 5px 5px 5px rgb(187, 187, 187);
     
     display: grid;
@@ -27,13 +37,19 @@ h1, h2 {
     gap: 12px;
 }
 
-table {
+.table-wrapper {
     grid-column: 1 / span 3;
+    overflow: auto;
+}
+
+table {
+    width: 100%;
     border-collapse: collapse;
+    background-color: rgb(245, 240, 225);
 }
 
 th, td{
-    border: 1px solid rgb(81, 156, 255);
+    border: 1px solid rgb(36, 36, 36);
     padding: 8px;
     text-align: left;
 }
@@ -46,4 +62,19 @@ th, td{
 /* Tabla vacía */
 table:not(:has(tbody tr)) {
     display: none;
+}
+
+button {
+    border: 1px solid rgb(36, 36, 36);
+    background-color: rgb(245, 240, 225);
+}
+
+button:hover {
+    cursor: pointer;
+    outline: 1px solid rgb(36, 36, 36);
+    background-color: rgb(224, 216, 192);
+}
+
+tbody > tr:hover {
+    background-color: rgb(224, 216, 192);
 }
