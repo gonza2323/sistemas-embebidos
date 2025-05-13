@@ -10,7 +10,7 @@ TPS=("tp1" "tp2" "tp3" "tp5" "integrador")
 
 # configurar permisos
 chmod u+x ./*.sh
-chmod u+x scripts/*.sh
+chmod u+x package-files/*.sh
 
 # copiar archivos
 for TP in "${TPS[@]}"; do
@@ -30,11 +30,11 @@ for TP in "${TPS[@]}"; do
         exit 1
     fi
 
-    # scripts/
-    if [ -d "scripts" ]; then
-        cp -r scripts/* "$PACKAGED_DIR/$TP/"
+    # package-files/
+    if [ -d "package-files" ]; then
+        cp -r package-files/* "$PACKAGED_DIR/$TP/"
     else
-        echo "Error: No se encontró el directorio scripts/"
+        echo "Error: No se encontró el directorio package-files/"
         exit 1
     fi
 

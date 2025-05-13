@@ -54,7 +54,7 @@ Para ejecutar un TP, primero debe conectarse la placa por USB. Luego podemos eje
 
 Para que funcione, el programa del Arduino debe estar en `<nombre-tp>/arduino/arduino.ino`.
 
-Si hay problemas de permisos para acceder al Arduino, es porque nunca se ejecutó el script `./setup.sh`.
+Si hay problemas de permisos para acceder al Arduino, es porque nunca se ejecutó el script `./arduino_setup.sh`.
 
 
 ### B) Usando el simulador de Arduino
